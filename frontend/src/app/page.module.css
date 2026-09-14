@@ -1,0 +1,366 @@
+.page {
+  min-height: 100vh;
+  position: relative;
+  z-index: 1;
+  max-width: 480px;
+  margin: 0 auto;
+  padding-bottom: 40px;
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(10, 15, 30, 0.85);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.headerInner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logoIcon {
+  font-size: 1.6rem;
+  filter: drop-shadow(0 0 8px rgba(59,130,246,0.5));
+}
+
+.logoTitle {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  letter-spacing: 0.05em;
+}
+
+.logoSub {
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+}
+
+.adminLink {
+  font-size: 0.8rem !important;
+  padding: 6px 12px !important;
+}
+
+.main {
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.timeCard {
+  text-align: center;
+  padding: 28px 20px;
+  background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(139,92,246,0.08));
+  border-color: rgba(59,130,246,0.2);
+}
+
+.dayLabel {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 4px;
+}
+
+.dateDisplay {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-bottom: 8px;
+}
+
+.clockDisplay {
+  font-size: 2.8rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  background: linear-gradient(135deg, #60a5fa, #a78bfa);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-variant-numeric: tabular-nums;
+}
+
+.studentCard {
+  padding: 20px;
+}
+
+.studentCardTitle {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 12px;
+}
+
+.selectedStudentInfo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.selectedName {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-primary-light);
+}
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  animation: fadeIn 0.2s ease;
+}
+
+.modal {
+  background: #0d1529;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  width: 100%;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.modalHeader h3 { font-size: 1.1rem; }
+
+.modalClose {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 1.1rem;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+.modalClose:hover { background: rgba(255,255,255,0.1); }
+
+.studentList {
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.studentItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  background: none;
+  border: 1px solid transparent;
+  color: var(--color-text-primary);
+  font-family: inherit;
+  font-size: 0.95rem;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s;
+  width: 100%;
+}
+
+.studentItem:hover {
+  background: var(--color-surface-hover);
+  border-color: var(--color-border);
+}
+
+.studentItemActive {
+  background: var(--color-primary-glow);
+  border-color: var(--color-primary);
+}
+
+.studentNum {
+  width: 28px;
+  height: 28px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.studentItemActive .studentNum {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.studentName { flex: 1; font-weight: 500; }
+.checkmark { color: var(--color-primary-light); font-weight: 700; }
+
+.sessionsGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sessionCard { padding: 20px; }
+
+.sessionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.sessionLabel { font-size: 1rem; font-weight: 700; }
+
+.sessionTimeBadge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+}
+
+.sessionOpen {
+  background: rgba(34, 197, 94, 0.12);
+  color: #22c55e;
+  border: 1px solid rgba(34,197,94,0.3);
+}
+
+.sessionClosed {
+  background: rgba(100, 116, 139, 0.12);
+  color: var(--color-text-muted);
+  border: 1px solid rgba(100,116,139,0.2);
+}
+
+.sessionTime {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.onTimeHint { color: var(--color-text-muted); font-size: 0.72rem; }
+
+.checkinBtn {
+  background: linear-gradient(135deg, #3b82f6, #6366f1) !important;
+  border-radius: var(--radius-lg) !important;
+  font-size: 1rem !important;
+}
+
+.checkedInState {
+  text-align: center;
+  padding: 12px 0 4px;
+}
+
+.statusBig {
+  font-size: 1.2rem;
+  font-weight: 700;
+  padding: 8px 20px;
+  border-radius: var(--radius-full);
+  display: inline-block;
+  margin-bottom: 8px;
+}
+
+.statusPresent {
+  background: var(--color-present-bg);
+  color: var(--color-present);
+  border: 1px solid var(--color-present-border);
+}
+
+.statusLate {
+  background: var(--color-late-bg);
+  color: var(--color-late);
+  border: 1px solid var(--color-late-border);
+}
+
+.statusAbsent {
+  background: var(--color-absent-bg);
+  color: var(--color-absent);
+  border: 1px solid var(--color-absent-border);
+}
+
+.statusExcused {
+  background: var(--color-excused-bg);
+  color: var(--color-excused);
+  border: 1px solid var(--color-excused-border);
+}
+
+.checkInTime {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.closedState {
+  text-align: center;
+  padding: 16px;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  background: rgba(100,116,139,0.06);
+  border-radius: var(--radius-md);
+}
+
+.message {
+  padding: 14px 20px;
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.message-success {
+  background: var(--color-present-bg);
+  color: var(--color-present);
+  border: 1px solid var(--color-present-border);
+}
+
+.message-error {
+  background: var(--color-absent-bg);
+  color: var(--color-absent);
+  border: 1px solid var(--color-absent-border);
+}
+
+.message-info {
+  background: var(--color-late-bg);
+  color: var(--color-late);
+  border: 1px solid var(--color-late-border);
+}
+
+.footerNote {
+  font-size: 0.78rem;
+  margin-top: 8px;
+}
