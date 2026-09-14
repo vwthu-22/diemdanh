@@ -73,6 +73,44 @@
   backdrop-filter: blur(12px);
 }
 
+@media (max-width: 680px) {
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+  .headerRight {
+    width: 100%;
+  }
+  .headerRight a {
+    width: 100%;
+    justify-content: center;
+  }
+  .title {
+    font-size: 1.4rem;
+  }
+  .headerIcon {
+    width: 44px;
+    height: 44px;
+    font-size: 1.5rem;
+  }
+  .todayBanner {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 14px;
+    gap: 12px;
+  }
+  .todayLessonsList {
+    width: 100%;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .todayLessonChip {
+    width: 100%;
+    box-sizing: border-box;
+  }
+}
+
 .todayBannerTitle {
   font-size: 0.85rem;
   font-weight: 700;
@@ -239,6 +277,39 @@
   box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
 }
 
+.toolbarRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.searchInput {
+  width: 190px;
+  padding: 6px 12px;
+  font-size: 0.82rem;
+}
+
+@media (max-width: 860px) {
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 12px;
+  }
+  .weekSelectorGroup {
+    width: 100%;
+  }
+  .toolbarRight {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .searchInput {
+    flex: 1;
+    min-width: 0;
+    width: auto;
+  }
+}
+
 /* ─── GRID VIEW ───────────────────────────────────────────────────────────── */
 .gridContainer {
   display: flex;
@@ -274,20 +345,40 @@
 
 .daysGrid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(var(--day-count, 5), minmax(0, 1fr));
   gap: 1px;
   background: rgba(255, 255, 255, 0.06);
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1200px) {
   .daysGrid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 680px) {
+@media (max-width: 860px) {
+  .daysGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 580px) {
   .daysGrid {
     grid-template-columns: 1fr;
+  }
+  .dayColumn {
+    min-height: auto;
+  }
+  .emptyDay {
+    padding: 24px 10px;
+    flex-direction: row;
+    gap: 8px;
+  }
+  .weekHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 12px 14px;
   }
 }
 

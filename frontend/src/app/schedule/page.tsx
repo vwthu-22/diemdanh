@@ -196,14 +196,13 @@ export default function SchedulePage() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div className={styles.toolbarRight}>
           <input
             type="text"
-            className="input"
+            className={`input ${styles.searchInput}`}
             placeholder="🔍 Tìm môn, phòng, GV..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            style={{ width: 190, padding: '6px 12px', fontSize: '0.82rem' }}
           />
 
           <div className={styles.viewSwitch}>
@@ -249,7 +248,7 @@ export default function SchedulePage() {
 
                 <div
                   className={styles.daysGrid}
-                  style={{ gridTemplateColumns: `repeat(${weekDays.length}, minmax(0, 1fr))` }}
+                  style={{ '--day-count': weekDays.length } as React.CSSProperties}
                 >
                   {weekDays.map((day) => {
                     const lessons = getWeekDayLessons(weekNum, day.num);

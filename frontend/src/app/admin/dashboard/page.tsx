@@ -37,6 +37,10 @@ export default function DashboardPage() {
   const [activeFilter, setActiveFilter] = useState<'all' | AttendanceStatus>('all');
   const [settings, setSettings] = useState<Settings | null>(null);
 
+  // Bulk attend state
+  const [bulkSession, setBulkSession] = useState<AttendanceSession | 'both'>('morning');
+  const [bulkLoading, setBulkLoading] = useState(false);
+
   // Modal State
   const [excuseModal, setExcuseModal] = useState<{ studentId: number; name: string; dob?: string } | null>(null);
   const [excuseNote, setExcuseNote] = useState('');
@@ -104,6 +108,45 @@ export default function DashboardPage() {
       alert(`Đã mở khóa thiết bị thành công cho ${studentName}!`);
     } catch (err: any) {
       alert(err?.response?.data?.message || 'Có lỗi xảy ra khi reset thiết bị');
+    }
+  };
+
+  const markAllPresent = async () => {
+    const sessions: AttendanceSession[] = bulkSession === 'both' ? ['morning', 'afternoon'] : [bulkSession];
+    const missing: { studentId: number; session: AttendanceSession }[] = [];
+
+    for (const row of rows) {
+      for (const sess of sessions) {
+        const existing = sess === 'morning' ? row.morning : row.afternoon;
+        if (!existing) {
+          missing.push({ studentId: row.student.id, session: sess });
+        }
+      }
+    }
+
+    if (missing.length === 0) {
+      alert('Tất cả sinh viên đã có điểm danh rồi!');
+      return;
+    }
+
+    const sessionLabel = bulkSession === 'both' ? 'cả 2 buổi' : (bulkSession === 'morning' ? 'buổi sáng' : 'buổi chiều');
+    const confirmed = window.confirm(
+      `Điểm danh "Có mặt" cho ${missing.length} lượt còn thiếu (${sessionLabel})?\n\nHành động này sẽ thêm ${missing.length} bản ghi điểm danh.`
+    );
+    if (!confirmed) return;
+
+    setBulkLoading(true);
+    try {
+      await Promise.all(
+        missing.map(({ studentId, session }) =>
+          api.post('/admin/excuse', { studentId, date, session, note: '', status: 'present' })
+        )
+      );
+      fetchData(true);
+    } catch {
+      alert('Có lỗi xảy ra khi điểm danh hàng loạt!');
+    } finally {
+      setBulkLoading(false);
     }
   };
 
@@ -382,6 +425,34 @@ export default function DashboardPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
+          </div>
+
+          {/* Bulk Attend */}
+          <div className={styles.bulkAttendWrap}>
+            <select
+              className={styles.bulkSessionSelect}
+              value={bulkSession}
+              onChange={(e) => setBulkSession(e.target.value as AttendanceSession | 'both')}
+              title="Chọn buổi muốn điểm danh hàng loạt"
+            >
+              <option value="morning">🌅 Sáng</option>
+              <option value="afternoon">☀️ Chiều</option>
+              <option value="both">📋 Cả 2 buổi</option>
+            </select>
+            <button
+              type="button"
+              className={styles.bulkAttendBtn}
+              onClick={markAllPresent}
+              disabled={bulkLoading}
+              title="Điểm danh có mặt cho toàn bộ sinh viên chưa có lượt trong buổi đã chọn"
+              id="btn-mark-all-present"
+            >
+              {bulkLoading ? (
+                <><div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} /> Đang xử lý...</>
+              ) : (
+                <>✅ Điểm danh tất cả</>
+              )}
+            </button>
           </div>
         </div>
 
