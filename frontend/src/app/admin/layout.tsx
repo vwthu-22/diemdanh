@@ -26,6 +26,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const navItems = [
     { href: '/admin/dashboard', label: '📊 Dashboard', id: 'nav-dashboard' },
+    { href: '/schedule', label: '📅 Thời khóa biểu', id: 'nav-schedule' },
     { href: '/admin/export', label: '📥 Xuất file', id: 'nav-export' },
     { href: '/admin/settings', label: '⚙️ Cài đặt', id: 'nav-settings' },
   ];

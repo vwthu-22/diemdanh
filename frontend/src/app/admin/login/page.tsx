@@ -38,7 +38,7 @@ export default function AdminLoginPage() {
             <input
               className="input"
               type="text"
-              placeholder="giaovien"
+              placeholder="Tài khoản"
               value={form.username}
               onChange={(e) => setForm({ ...form, username: e.target.value })}
               required
@@ -50,7 +50,7 @@ export default function AdminLoginPage() {
             <input
               className="input"
               type="password"
-              placeholder="••••••••"
+              placeholder="Mật khẩu"
               value={form.password}
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               required

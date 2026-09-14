@@ -134,9 +134,27 @@
 /* ── Stats Grid ── */
 .statsGrid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
   margin-bottom: 28px;
+}
+
+@media (max-width: 1280px) {
+  .statsGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .statsGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .statCard {
@@ -273,6 +291,20 @@
 }
 .statAbsent .statProgressBar { background: var(--color-absent); }
 
+.statExcused {
+  border-color: rgba(168, 85, 247, 0.25);
+}
+.statExcused .statIcon {
+  background: rgba(168, 85, 247, 0.15);
+  color: var(--color-excused);
+}
+.statExcused .statNum { color: var(--color-excused); }
+.statExcused .statPercent {
+  background: var(--color-excused-bg);
+  color: var(--color-excused);
+}
+.statExcused .statProgressBar { background: var(--color-excused); }
+
 /* ── Main Table Card ── */
 .tableCard {
   background: rgba(13, 21, 41, 0.75);
@@ -369,39 +401,98 @@
 .tableResponsive {
   overflow-x: auto;
   width: 100%;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: var(--color-surface);
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
   text-align: center;
+  border-spacing: 0;
 }
 
-.table th {
-  padding: 14px 16px;
-  font-size: 0.78rem;
+.table th,
+.table td {
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  padding: 12px 14px;
+  vertical-align: middle;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.table thead th {
+  background: #141f36 !important;
+  color: #e2e8f0;
   font-weight: 700;
+  font-size: 0.78rem;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--color-text-secondary);
-  border-bottom: 1px solid var(--color-border);
-  background: rgba(255, 255, 255, 0.02);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.35) !important;
   white-space: nowrap;
 }
 
-.table td {
-  padding: 14px 16px;
-  font-size: 0.88rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-  vertical-align: middle;
-}
-
-.table tbody tr {
-  transition: background 0.15s ease;
+.table tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .table tbody tr:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.055);
+}
+
+/* Specific column dividers */
+.dayDivider {
+  border-right: 2px solid rgba(255, 255, 255, 0.4) !important;
+}
+
+.sectionDividerRight {
+  border-right: 2px solid #3b82f6 !important;
+}
+
+.sectionDividerLeft {
+  border-left: 2px solid #3b82f6 !important;
+}
+
+/* Specific column sizing */
+.colSTT {
+  width: 52px;
+  min-width: 52px;
+  max-width: 52px;
+  text-align: center !important;
+}
+
+.colName {
+  min-width: 200px;
+  text-align: left !important;
+  padding-left: 16px !important;
+}
+
+.colDob {
+  width: 115px;
+  min-width: 115px;
+  max-width: 115px;
+  text-align: center !important;
+  white-space: nowrap;
+}
+
+.colSession {
+  min-width: 210px;
+  text-align: center !important;
+}
+
+.colSummary {
+  width: 120px;
+  min-width: 120px;
+  max-width: 120px;
+  text-align: center !important;
+}
+
+.colAction {
+  width: 95px;
+  min-width: 95px;
+  max-width: 95px;
+  text-align: center !important;
 }
 
 .sttBadge {
@@ -522,6 +613,69 @@
 .miniDeleteBtn:hover {
   background: var(--color-absent);
   color: #fff;
+}
+
+.miniEditBtn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--color-text-secondary);
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.72rem;
+  transition: all 0.15s;
+}
+
+.miniEditBtn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+.notePill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 140px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(168, 85, 247, 0.14);
+  border: 1px solid rgba(168, 85, 247, 0.35);
+  color: #c084fc;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.notePill:hover {
+  background: rgba(168, 85, 247, 0.25);
+  border-color: rgba(168, 85, 247, 0.6);
+  color: #f3e8ff;
+  transform: translateY(-1px);
+}
+
+.addNoteLink {
+  background: none;
+  border: none;
+  color: #a855f7;
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 4px;
+  text-decoration: underline;
+  opacity: 0.85;
+  transition: opacity 0.15s;
+}
+
+.addNoteLink:hover {
+  opacity: 1;
 }
 
 .addExcuseBtn {

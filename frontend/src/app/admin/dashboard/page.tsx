@@ -1,14 +1,14 @@
 'use client';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import api from '@/lib/api';
-import { DailyAttendanceRow, AttendanceStatus, AttendanceSession, Settings } from '@/types';
+import { DailyAttendanceRow, AttendanceStatus, AttendanceSession, Settings, AttendanceRecord } from '@/types';
 import styles from './dashboard.module.css';
 
 const STATUS_LABELS: Record<string, string> = {
   present: 'Có mặt',
   late: 'Muộn',
-  absent: 'Vắng',
-  excused: 'Có phép',
+  absent: 'Vắng không phép',
+  excused: 'Vắng có phép',
 };
 
 const STATUS_ICONS: Record<string, string> = {
@@ -90,6 +90,23 @@ export default function DashboardPage() {
     } catch {}
   };
 
+  const handleResetDevice = async (studentId: number, studentName: string) => {
+    if (
+      !window.confirm(
+        `Bạn có chắc muốn mở khóa thiết bị cho sinh viên "${studentName}"?\nSau khi mở khóa, sinh viên có thể dùng điện thoại mới để điểm danh lại.`,
+      )
+    ) {
+      return;
+    }
+    try {
+      await api.post(`/admin/students/${studentId}/reset-device`);
+      fetchData(true);
+      alert(`Đã mở khóa thiết bị thành công cho ${studentName}!`);
+    } catch (err: any) {
+      alert(err?.response?.data?.message || 'Có lỗi xảy ra khi reset thiết bị');
+    }
+  };
+
   const submitExcuse = async () => {
     if (!excuseModal) return;
     try {
@@ -135,6 +152,7 @@ export default function DashboardPage() {
   const presentPct = totalStudents > 0 ? Math.round((presentCount / totalStudents) * 100) : 0;
   const latePct = totalStudents > 0 ? Math.round((lateCount / totalStudents) * 100) : 0;
   const absentPct = totalStudents > 0 ? Math.round((absentCount / totalStudents) * 100) : 0;
+  const excusedPct = totalStudents > 0 ? Math.round((excusedCount / totalStudents) * 100) : 0;
 
   // Filtered rows
   const filteredRows = useMemo(() => {
@@ -151,7 +169,7 @@ export default function DashboardPage() {
       // Status chip filter
       if (activeFilter !== 'all') {
         const summary = getRowSummary(row);
-        if (activeFilter !== summary) return false;
+        if (summary !== activeFilter) return false;
       }
 
       return true;
@@ -255,7 +273,7 @@ export default function DashboardPage() {
             <div className={styles.statPercent}>{presentPct}%</div>
           </div>
           <div className={styles.statNum}>{presentCount}</div>
-          <div className={styles.statLabel}>Có mặt trong ngày</div>
+          <div className={styles.statLabel}>Có mặt</div>
           <div className={styles.statProgressTrack}>
             <div className={styles.statProgressBar} style={{ width: `${presentPct}%` }} />
           </div>
@@ -278,18 +296,35 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Excused */}
+        <div
+          className={`${styles.statCard} ${styles.statExcused} ${activeFilter === 'excused' ? styles.statCardActive : ''}`}
+          onClick={() => setActiveFilter(activeFilter === 'excused' ? 'all' : 'excused')}
+          title="Bấm để lọc sinh viên vắng có phép"
+        >
+          <div className={styles.statHeader}>
+            <div className={styles.statIcon}>📋</div>
+            <div className={styles.statPercent}>{excusedPct}%</div>
+          </div>
+          <div className={styles.statNum}>{excusedCount}</div>
+          <div className={styles.statLabel}>Vắng có phép</div>
+          <div className={styles.statProgressTrack}>
+            <div className={styles.statProgressBar} style={{ width: `${excusedPct}%` }} />
+          </div>
+        </div>
+
         {/* Absent */}
         <div
           className={`${styles.statCard} ${styles.statAbsent} ${activeFilter === 'absent' ? styles.statCardActive : ''}`}
           onClick={() => setActiveFilter(activeFilter === 'absent' ? 'all' : 'absent')}
-          title="Bấm để lọc sinh viên vắng mặt"
+          title="Bấm để lọc sinh viên vắng không phép"
         >
           <div className={styles.statHeader}>
             <div className={styles.statIcon}>❌</div>
             <div className={styles.statPercent}>{absentPct}%</div>
           </div>
           <div className={styles.statNum}>{absentCount}</div>
-          <div className={styles.statLabel}>Chưa có mặt / Vắng</div>
+          <div className={styles.statLabel}>Vắng không phép</div>
           <div className={styles.statProgressTrack}>
             <div className={styles.statProgressBar} style={{ width: `${absentPct}%` }} />
           </div>
@@ -324,17 +359,17 @@ export default function DashboardPage() {
             </button>
             <button
               type="button"
-              className={`${styles.filterChip} ${activeFilter === 'absent' ? styles.filterChipActive : ''}`}
-              onClick={() => setActiveFilter('absent')}
-            >
-              Vắng mặt ({absentCount})
-            </button>
-            <button
-              type="button"
               className={`${styles.filterChip} ${activeFilter === 'excused' ? styles.filterChipActive : ''}`}
               onClick={() => setActiveFilter('excused')}
             >
-              Có phép ({excusedCount})
+              Vắng có phép ({excusedCount})
+            </button>
+            <button
+              type="button"
+              className={`${styles.filterChip} ${activeFilter === 'absent' ? styles.filterChipActive : ''}`}
+              onClick={() => setActiveFilter('absent')}
+            >
+              Vắng không phép ({absentCount})
             </button>
           </div>
 
@@ -365,23 +400,23 @@ export default function DashboardPage() {
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th style={{ width: 60 }}>STT</th>
-                  <th style={{ textAlign: 'left', minWidth: 200 }}>Họ và Tên</th>
-                  <th style={{ width: 120 }}>Ngày sinh</th>
-                  <th style={{ minWidth: 170 }}>
+                  <th className={styles.colSTT}>STT</th>
+                  <th className={styles.colName}>Họ và Tên</th>
+                  <th className={`${styles.colDob} ${styles.sectionDividerRight}`}>Ngày sinh</th>
+                  <th className={`${styles.colSession} ${styles.dayDivider}`}>
                     🌅 Sáng
                     <div style={{ fontSize: '0.72rem', fontWeight: 500, color: 'var(--color-text-muted)', marginTop: 2 }}>
                       {settings ? `${settings.morningStart} - ${settings.morningLateEnd}` : '07:30 - 08:15'}
                     </div>
                   </th>
-                  <th style={{ minWidth: 170 }}>
+                  <th className={`${styles.colSession} ${styles.sectionDividerRight}`}>
                     ☀️ Chiều
                     <div style={{ fontSize: '0.72rem', fontWeight: 500, color: 'var(--color-text-muted)', marginTop: 2 }}>
                       {settings ? `${settings.afternoonStart} - ${settings.afternoonLateEnd}` : '13:00 - 13:45'}
                     </div>
                   </th>
-                  <th style={{ width: 130 }}>Tổng kết</th>
-                  <th style={{ width: 110 }}>Thao tác</th>
+                  <th className={`${styles.colSummary} ${styles.sectionDividerLeft}`}>Tổng kết</th>
+                  <th className={styles.colAction}>Thao tác</th>
                 </tr>
               </thead>
               <tbody>
@@ -392,29 +427,56 @@ export default function DashboardPage() {
                   return (
                     <tr key={student.id}>
                       {/* STT */}
-                      <td>
+                      <td className={styles.colSTT}>
                         <span className={styles.sttBadge}>{student.orderNum}</span>
                       </td>
 
                       {/* Name with initials Avatar */}
-                      <td>
+                      <td className={styles.colName}>
                         <div className={styles.studentCell}>
                           <div className={styles.avatar}>
                             {getInitials(student.name)}
                           </div>
                           <div>
                             <div className={styles.studentName}>{student.name}</div>
+                            {student.deviceId ? (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                                <span style={{ fontSize: '0.72rem', color: 'var(--color-present)', fontWeight: 600 }} title={`Mã thiết bị: ${student.deviceId}`}>
+                                  📱 Đã khóa máy
+                                </span>
+                                <button
+                                  type="button"
+                                  style={{
+                                    fontSize: '0.68rem',
+                                    padding: '1px 6px',
+                                    borderRadius: 4,
+                                    border: '1px solid rgba(255,255,255,0.15)',
+                                    background: 'rgba(255,255,255,0.08)',
+                                    color: 'var(--color-text-secondary)',
+                                    cursor: 'pointer',
+                                  }}
+                                  title="Nhấn để mở khóa nếu sinh viên đổi điện thoại mới"
+                                  onClick={() => handleResetDevice(student.id, student.name)}
+                                >
+                                  🔄 Reset máy
+                                </button>
+                              </div>
+                            ) : (
+                              <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: 2 }}>
+                                ⚪ Chưa liên kết máy
+                              </div>
+                            )}
                           </div>
                         </div>
                       </td>
 
                       {/* Ngày sinh */}
-                      <td>
+                      <td className={`${styles.colDob} ${styles.sectionDividerRight}`}>
                         <span className={styles.dobText}>{student.dob || '—'}</span>
                       </td>
 
                       {/* Ca Sáng */}
-                      <td>
+                      <td className={`${styles.colSession} ${styles.dayDivider}`}>
                         {morning ? (
                           <div className={styles.sessionBox}>
                             <span
@@ -432,6 +494,33 @@ export default function DashboardPage() {
                                 ⏱️ {morning.checkInTime.substring(0, 5)}
                               </span>
                             )}
+                            {morning.note ? (
+                              <span
+                                className={styles.notePill}
+                                title={`Lý do: ${morning.note} (Bấm để sửa)`}
+                                onClick={() => {
+                                  setExcuseModal({ studentId: student.id, name: student.name, dob: student.dob });
+                                  setExcuseSession('morning');
+                                  setExcuseStatus(morning.status);
+                                  setExcuseNote(morning.note || '');
+                                }}
+                              >
+                                💬 {morning.note}
+                              </span>
+                            ) : morning.status === 'excused' ? (
+                              <button
+                                type="button"
+                                className={styles.addNoteLink}
+                                onClick={() => {
+                                  setExcuseModal({ studentId: student.id, name: student.name, dob: student.dob });
+                                  setExcuseSession('morning');
+                                  setExcuseStatus('excused');
+                                  setExcuseNote('');
+                                }}
+                              >
+                                + Thêm lý do phép
+                              </button>
+                            ) : null}
                             <div className={styles.quickActionRow}>
                               <select
                                 className={styles.statusMiniSelect}
@@ -451,6 +540,19 @@ export default function DashboardPage() {
                               </select>
                               <button
                                 type="button"
+                                className={styles.miniEditBtn}
+                                title="Sửa lý do / trạng thái"
+                                onClick={() => {
+                                  setExcuseModal({ studentId: student.id, name: student.name, dob: student.dob });
+                                  setExcuseSession('morning');
+                                  setExcuseStatus(morning.status);
+                                  setExcuseNote(morning.note || '');
+                                }}
+                              >
+                                ✏️
+                              </button>
+                              <button
+                                type="button"
                                 className={styles.miniDeleteBtn}
                                 title="Xóa lượt này"
                                 onClick={() => deleteRecord(morning.id)}
@@ -466,6 +568,8 @@ export default function DashboardPage() {
                             onClick={() => {
                               setExcuseModal({ studentId: student.id, name: student.name, dob: student.dob });
                               setExcuseSession('morning');
+                              setExcuseStatus('excused');
+                              setExcuseNote('');
                             }}
                           >
                             + Điểm danh / Phép
@@ -474,7 +578,7 @@ export default function DashboardPage() {
                       </td>
 
                       {/* Ca Chiều */}
-                      <td>
+                      <td className={`${styles.colSession} ${styles.sectionDividerRight}`}>
                         {afternoon ? (
                           <div className={styles.sessionBox}>
                             <span
@@ -492,6 +596,33 @@ export default function DashboardPage() {
                                 ⏱️ {afternoon.checkInTime.substring(0, 5)}
                               </span>
                             )}
+                            {afternoon.note ? (
+                              <span
+                                className={styles.notePill}
+                                title={`Lý do: ${afternoon.note} (Bấm để sửa)`}
+                                onClick={() => {
+                                  setExcuseModal({ studentId: student.id, name: student.name, dob: student.dob });
+                                  setExcuseSession('afternoon');
+                                  setExcuseStatus(afternoon.status);
+                                  setExcuseNote(afternoon.note || '');
+                                }}
+                              >
+                                💬 {afternoon.note}
+                              </span>
+                            ) : afternoon.status === 'excused' ? (
+                              <button
+                                type="button"
+                                className={styles.addNoteLink}
+                                onClick={() => {
+                                  setExcuseModal({ studentId: student.id, name: student.name, dob: student.dob });
+                                  setExcuseSession('afternoon');
+                                  setExcuseStatus('excused');
+                                  setExcuseNote('');
+                                }}
+                              >
+                                + Thêm lý do phép
+                              </button>
+                            ) : null}
                             <div className={styles.quickActionRow}>
                               <select
                                 className={styles.statusMiniSelect}
@@ -511,6 +642,19 @@ export default function DashboardPage() {
                               </select>
                               <button
                                 type="button"
+                                className={styles.miniEditBtn}
+                                title="Sửa lý do / trạng thái"
+                                onClick={() => {
+                                  setExcuseModal({ studentId: student.id, name: student.name, dob: student.dob });
+                                  setExcuseSession('afternoon');
+                                  setExcuseStatus(afternoon.status);
+                                  setExcuseNote(afternoon.note || '');
+                                }}
+                              >
+                                ✏️
+                              </button>
+                              <button
+                                type="button"
                                 className={styles.miniDeleteBtn}
                                 title="Xóa lượt này"
                                 onClick={() => deleteRecord(afternoon.id)}
@@ -526,6 +670,8 @@ export default function DashboardPage() {
                             onClick={() => {
                               setExcuseModal({ studentId: student.id, name: student.name, dob: student.dob });
                               setExcuseSession('afternoon');
+                              setExcuseStatus('excused');
+                              setExcuseNote('');
                             }}
                           >
                             + Điểm danh / Phép
@@ -534,7 +680,7 @@ export default function DashboardPage() {
                       </td>
 
                       {/* Tổng kết ngày */}
-                      <td>
+                      <td className={`${styles.colSummary} ${styles.sectionDividerLeft}`}>
                         <span
                           className={styles.daySummaryPill}
                           style={{
@@ -548,7 +694,7 @@ export default function DashboardPage() {
                       </td>
 
                       {/* Thao tác */}
-                      <td>
+                      <td className={styles.colAction}>
                         <button
                           type="button"
                           className={styles.actionBtn}

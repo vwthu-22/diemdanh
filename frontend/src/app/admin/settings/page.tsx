@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState, useMemo } from 'react';
+import Link from 'next/link';
 import api from '@/lib/api';
 import { Settings } from '@/types';
 import styles from './settings.module.css';
@@ -15,12 +16,12 @@ const DAYS = [
 ];
 
 const DEFAULT_SCHEDULE: Record<string, string[]> = {
-  '1': ['morning', 'afternoon'],
+  '1': ['morning'],
   '2': ['morning', 'afternoon'],
   '3': ['morning', 'afternoon'],
-  '4': ['morning', 'afternoon'],
+  '4': ['morning'],
   '5': ['morning', 'afternoon'],
-  '6': ['morning'],
+  '6': [],
   '0': [],
 };
 
@@ -82,52 +83,6 @@ export default function SettingsPage() {
     );
   };
 
-  const schedule = form.schedule || DEFAULT_SCHEDULE;
-
-  const toggleSchedule = (dayKey: string, session: 'morning' | 'afternoon') => {
-    const currentSessions = schedule[dayKey] || [];
-    const hasSession = currentSessions.includes(session);
-    const updatedSessions = hasSession
-      ? currentSessions.filter((s) => s !== session)
-      : [...currentSessions, session];
-
-    setForm((prev) => ({
-      ...prev,
-      schedule: {
-        ...schedule,
-        [dayKey]: updatedSessions,
-      },
-    }));
-  };
-
-  const setPresetSchedule = (type: 'weekday' | 'all' | 'none') => {
-    let newSched: Record<string, string[]> = {};
-    if (type === 'weekday') {
-      newSched = {
-        '1': ['morning', 'afternoon'],
-        '2': ['morning', 'afternoon'],
-        '3': ['morning', 'afternoon'],
-        '4': ['morning', 'afternoon'],
-        '5': ['morning', 'afternoon'],
-        '6': ['morning'],
-        '0': [],
-      };
-    } else if (type === 'all') {
-      newSched = {
-        '1': ['morning', 'afternoon'],
-        '2': ['morning', 'afternoon'],
-        '3': ['morning', 'afternoon'],
-        '4': ['morning', 'afternoon'],
-        '5': ['morning', 'afternoon'],
-        '6': ['morning', 'afternoon'],
-        '0': [],
-      };
-    } else {
-      newSched = { '1': [], '2': [], '3': [], '4': [], '5': [], '6': [], '0': [] };
-    }
-    setForm((prev) => ({ ...prev, schedule: newSched }));
-  };
-
   const save = async () => {
     setLoading(true);
     setMessage(null);
@@ -145,6 +100,52 @@ export default function SettingsPage() {
 
   const update = (field: keyof Settings, value: string | number) => {
     setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const schedule = form.schedule || settings?.schedule || DEFAULT_SCHEDULE;
+
+  const toggleSchedule = (dayKey: string, session: 'morning' | 'afternoon') => {
+    const currentSessions = schedule[dayKey] || [];
+    const hasSession = currentSessions.includes(session);
+    const updatedSessions = hasSession
+      ? currentSessions.filter((s) => s !== session)
+      : [...currentSessions, session];
+
+    setForm((prev) => ({
+      ...prev,
+      schedule: {
+        ...schedule,
+        [dayKey]: updatedSessions,
+      },
+    }));
+  };
+
+  const setPresetSchedule = (type: 'cqp22' | 'all' | 'none') => {
+    let newSched: Record<string, string[]> = {};
+    if (type === 'cqp22') {
+      newSched = {
+        '1': ['morning'],
+        '2': ['morning', 'afternoon'],
+        '3': ['morning', 'afternoon'],
+        '4': ['morning'],
+        '5': ['morning', 'afternoon'],
+        '6': [],
+        '0': [],
+      };
+    } else if (type === 'all') {
+      newSched = {
+        '1': ['morning', 'afternoon'],
+        '2': ['morning', 'afternoon'],
+        '3': ['morning', 'afternoon'],
+        '4': ['morning', 'afternoon'],
+        '5': ['morning', 'afternoon'],
+        '6': ['morning', 'afternoon'],
+        '0': ['morning', 'afternoon'],
+      };
+    } else {
+      newSched = { '1': [], '2': [], '3': [], '4': [], '5': [], '6': [], '0': [] };
+    }
+    setForm((prev) => ({ ...prev, schedule: newSched }));
   };
 
   const copyCredentials = () => {
@@ -214,7 +215,7 @@ export default function SettingsPage() {
                 value={form.schoolLat || ''}
                 onChange={(e) => update('schoolLat', parseFloat(e.target.value))}
                 id="settings-school-lat"
-                placeholder="20.951694"
+                placeholder="20.868382"
               />
             </div>
             <div className={styles.field}>
@@ -226,7 +227,7 @@ export default function SettingsPage() {
                 value={form.schoolLng || ''}
                 onChange={(e) => update('schoolLng', parseFloat(e.target.value))}
                 id="settings-school-lng"
-                placeholder="105.841194"
+                placeholder="105.857279"
               />
             </div>
           </div>
@@ -383,18 +384,38 @@ export default function SettingsPage() {
               </div>
             </div>
           </div>
+
+          {/* Start Date Setting */}
+          <div style={{ marginTop: 16, padding: '14px 16px', background: 'rgba(59, 130, 246, 0.08)', borderRadius: 'var(--radius-md)', border: '1px solid rgba(59, 130, 246, 0.25)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-primary-light)' }}>
+                🗓️ Ngày bắt đầu áp dụng tính điểm danh
+              </span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+                Các ngày trước mốc này hiển thị "–" và không bị tính vắng
+              </span>
+            </div>
+            <input
+              className="input"
+              type="date"
+              value={form.startDate || '2026-09-14'}
+              onChange={(e) => update('startDate', e.target.value)}
+              id="settings-start-date"
+              style={{ maxWidth: 220 }}
+            />
+          </div>
         </div>
       </div>
 
-      {/* Card 3: Weekly Timetable Schedule (Full Width) */}
+      {/* Card 3: Weekly Timetable Schedule & Attendance Control */}
       <div className={styles.scheduleCard}>
         <div className={styles.scheduleHeaderRow}>
           <div>
             <h2 className={styles.sectionTitle}>
-              <span>📅</span> Thời khóa biểu tuần (Lịch học)
+              <span>📅</span> Thời khóa biểu tuần (Lịch học & Điều khiển ca điểm danh)
             </h2>
             <p className={styles.sectionDesc} style={{ marginBottom: 0 }}>
-              Bấm vào từng ô để chuyển đổi giữa <strong>Học</strong> và <strong>Nghỉ</strong>. Ca nghỉ học sẽ không mở cổng điểm danh và không bị tính vắng học sinh.
+              Bấm vào từng ô để chuyển đổi giữa <strong>Học</strong> và <strong>Nghỉ</strong>. Ca nghỉ học sẽ <strong>không mở cổng điểm danh</strong> và <strong>không bị tính vắng học sinh</strong>. Thầy cô có thể chủ động cấu hình khi lớp nghỉ đột xuất hoặc có lịch học bù/thi vào Thứ 7, Chủ Nhật.
             </p>
           </div>
 
@@ -402,24 +423,35 @@ export default function SettingsPage() {
             <button
               type="button"
               className={styles.presetBtn}
-              onClick={() => setPresetSchedule('weekday')}
+              onClick={() => setPresetSchedule('cqp22')}
+              title="Khôi phục lịch học chuẩn của lớp CQP22"
             >
-              📋 Mặc định (T2-T6 + T7 sáng)
+              📋 Chuẩn lịch CQP22
             </button>
             <button
               type="button"
               className={styles.presetBtn}
               onClick={() => setPresetSchedule('all')}
+              title="Bật tất cả các ca trong tuần (T2 đến Chủ Nhật)"
             >
-              ⚡ Cả tuần (T2-T7)
+              ⚡ Bật cả tuần (T2-CN)
             </button>
             <button
               type="button"
               className={styles.presetBtn}
               onClick={() => setPresetSchedule('none')}
+              title="Tắt tất cả các ca"
             >
               ❌ Nghỉ tất cả
             </button>
+            <Link
+              href="/schedule"
+              className="btn btn-secondary"
+              style={{ padding: '6px 14px', fontSize: '0.8rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              id="btn-goto-schedule-from-settings"
+            >
+              📖 Xem TKB chi tiết cả kỳ →
+            </Link>
           </div>
         </div>
 
@@ -427,7 +459,7 @@ export default function SettingsPage() {
           <table className={styles.scheduleTable}>
             <thead>
               <tr>
-                <th style={{ width: 120, textAlign: 'left' }}>Ca học</th>
+                <th style={{ width: 130, textAlign: 'left' }}>Ca học</th>
                 {DAYS.map((d) => (
                   <th key={d.key}>{d.label}</th>
                 ))}
@@ -449,7 +481,7 @@ export default function SettingsPage() {
                     >
                       <div className={`${styles.scheduleToggleCard} ${active ? styles.toggleActive : styles.toggleInactive}`}>
                         <div className={styles.toggleTitle}>{active ? '✓ Học' : '✕ Nghỉ'}</div>
-                        <div className={styles.toggleSub}>{active ? 'Có điểm danh' : 'Bỏ qua'}</div>
+                        <div className={styles.toggleSub}>{active ? 'Có điểm danh' : 'Bỏ qua (không vắng)'}</div>
                       </div>
                     </td>
                   );
@@ -471,7 +503,7 @@ export default function SettingsPage() {
                     >
                       <div className={`${styles.scheduleToggleCard} ${active ? styles.toggleActive : styles.toggleInactive}`}>
                         <div className={styles.toggleTitle}>{active ? '✓ Học' : '✕ Nghỉ'}</div>
-                        <div className={styles.toggleSub}>{active ? 'Có điểm danh' : 'Bỏ qua'}</div>
+                        <div className={styles.toggleSub}>{active ? 'Có điểm danh' : 'Bỏ qua (không vắng)'}</div>
                       </div>
                     </td>
                   );

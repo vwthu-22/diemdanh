@@ -31,6 +31,7 @@ interface WeeklyData {
   settings?: {
     morningLateEnd?: string;
     afternoonLateEnd?: string;
+    startDate?: string;
   };
 }
 
@@ -61,37 +62,103 @@ function StatusCell({ record }: { record: AttendanceRecord | null }) {
   );
 }
 
+const DEFAULT_SCHEDULE: Record<string, string[]> = {
+  '1': ['morning'],
+  '2': ['morning', 'afternoon'],
+  '3': ['morning', 'afternoon'],
+  '4': ['morning'],
+  '5': ['morning', 'afternoon'],
+  '6': [],
+  '0': [],
+};
+
 function TimeCell({ record }: { record: AttendanceRecord | null }) {
   if (!record?.checkInTime) return <td style={{ color: 'var(--color-text-muted)' }}>–</td>;
   return <td>{record.checkInTime.slice(0, 5)}</td>;
-}
-
-function rowSummary(row: DailyRow) {
-  const records = [row.morning, row.afternoon].filter(Boolean) as AttendanceRecord[];
-  if (records.length === 0) return { label: '–', color: 'var(--color-text-muted)' };
-  if (records.some((r) => r.status === 'late')) return { label: 'Muộn', color: 'var(--color-late)' };
-  if (records.every((r) => r.status === 'present')) return { label: 'Có mặt', color: 'var(--color-present)' };
-  if (records.some((r) => r.status === 'excused')) return { label: 'Có phép', color: 'var(--color-excused)' };
-  return { label: 'Vắng', color: 'var(--color-absent)' };
 }
 
 // ─── Daily Preview ────────────────────────────────────────────────────────────
 
 function DailyPreview({ date }: { date: string }) {
   const [data, setData] = useState<DailyRow[]>([]);
+  const [settings, setSettings] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!date) return;
     setLoading(true);
-    api
-      .get<DailyRow[]>(`/admin/attendance?date=${date}`)
-      .then((r) => setData(r.data))
+    Promise.all([
+      api.get<DailyRow[]>(`/admin/attendance?date=${date}`),
+      api.get('/settings').catch(() => ({ data: null })),
+    ])
+      .then(([rData, rSettings]) => {
+        setData(rData.data);
+        setSettings(rSettings.data);
+      })
       .catch(() => setData([]))
       .finally(() => setLoading(false));
   }, [date]);
 
   const label = date.split('-').reverse().join('/');
+
+  const today = new Date().toLocaleDateString('en-CA');
+  const startDate = settings?.startDate || '2026-09-14';
+  const now = new Date();
+  const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const dow = String(new Date(date).getDay());
+  const schedule = settings?.schedule || DEFAULT_SCHEDULE;
+
+  const morningScheduled = schedule[dow]?.includes('morning') ?? true;
+  const afternoonScheduled = schedule[dow]?.includes('afternoon') ?? true;
+  const morningLateEnd = settings?.morningLateEnd || '08:15';
+  const afternoonLateEnd = settings?.afternoonLateEnd || '13:45';
+
+  const [ch, cm] = currentTime.split(':').map(Number);
+  const [mh, mm] = morningLateEnd.split(':').map(Number);
+  const [ah, am] = afternoonLateEnd.split(':').map(Number);
+
+  const isPastStart = date >= startDate;
+  const isMorningPassed = isPastStart && (date < today || (date === today && (ch * 60 + cm) > (mh * 60 + mm)));
+  const isAfternoonPassed = isPastStart && (date < today || (date === today && (ch * 60 + cm) > (ah * 60 + am)));
+
+  function getDailySessionDisplay(rec: AttendanceRecord | null, scheduled: boolean, passed: boolean) {
+    if (rec) {
+      return {
+        label: STATUS_LABEL[rec.status],
+        color: STATUS_COLOR[rec.status],
+        status: rec.status as AttendanceStatus | null,
+      };
+    }
+    if (scheduled && passed) {
+      return {
+        label: '✗',
+        color: STATUS_COLOR['absent'],
+        status: 'absent' as AttendanceStatus | null,
+      };
+    }
+    return {
+      label: '–',
+      color: 'var(--color-text-muted)',
+      status: null,
+    };
+  }
+
+  function getRowSummary(row: DailyRow) {
+    const mDisp = getDailySessionDisplay(row.morning, morningScheduled, isMorningPassed);
+    const aDisp = getDailySessionDisplay(row.afternoon, afternoonScheduled, isAfternoonPassed);
+
+    const statuses = [mDisp.status, aDisp.status].filter(Boolean) as AttendanceStatus[];
+    if (statuses.length === 0) {
+      return { label: '–', color: 'var(--color-text-muted)' };
+    }
+    if (statuses.some((s) => s === 'late')) return { label: 'Muộn', color: 'var(--color-late)' };
+    if (statuses.every((s) => s === 'present')) return { label: 'Có mặt', color: 'var(--color-present)' };
+    if (statuses.every((s) => s === 'excused')) return { label: 'Có phép', color: 'var(--color-excused)' };
+    if (statuses.some((s) => s === 'absent')) return { label: 'Vắng', color: 'var(--color-absent)' };
+    if (statuses.some((s) => s === 'present')) return { label: 'Có mặt', color: 'var(--color-present)' };
+    if (statuses.some((s) => s === 'excused')) return { label: 'Có phép', color: 'var(--color-excused)' };
+    return { label: 'Vắng', color: 'var(--color-absent)' };
+  }
 
   return (
     <div className={styles.previewTable}>
@@ -101,40 +168,52 @@ function DailyPreview({ date }: { date: string }) {
       ) : data.length === 0 ? (
         <div className={styles.previewEmpty}>Chưa có dữ liệu điểm danh ngày này</div>
       ) : (
-        <table>
-          <thead>
-            <tr>
-              <th style={{ width: 50 }}>STT</th>
-              <th style={{ textAlign: 'left', minWidth: 180 }}>Họ và Tên</th>
-              <th style={{ minWidth: 100 }}>Ngày sinh</th>
-              <th>Giờ vào Sáng</th>
-              <th>TT Sáng</th>
-              <th>Giờ vào Chiều</th>
-              <th>TT Chiều</th>
-              <th>Tổng kết</th>
-              <th>Ghi chú</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.map((row, i) => {
-              const sum = rowSummary(row);
-              const note = row.morning?.note || row.afternoon?.note || '';
-              return (
-                <tr key={row.student.id}>
-                  <td style={{ color: 'var(--color-text-muted)' }}>{i + 1}</td>
-                  <td style={{ textAlign: 'left', fontWeight: 600 }}>{row.student.name}</td>
-                  <td style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>{row.student.dob || '—'}</td>
-                  <TimeCell record={row.morning} />
-                  <StatusCell record={row.morning} />
-                  <TimeCell record={row.afternoon} />
-                  <StatusCell record={row.afternoon} />
-                  <td><span style={{ color: sum.color, fontWeight: 700 }}>{sum.label}</span></td>
-                  <td style={{ textAlign: 'left', fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>{note}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <div className={styles.tableScrollWrapper}>
+          <table>
+            <thead>
+              <tr>
+                <th className={styles.colSTT}>STT</th>
+                <th className={styles.colName}>Họ và Tên</th>
+                <th className={`${styles.colDob} ${styles.sectionDividerRight}`}>Ngày sinh</th>
+                <th style={{ minWidth: 100 }}>Giờ vào Sáng</th>
+                <th style={{ minWidth: 80 }} className={styles.dayDivider}>TT Sáng</th>
+                <th style={{ minWidth: 100 }}>Giờ vào Chiều</th>
+                <th style={{ minWidth: 80 }} className={styles.dayDivider}>TT Chiều</th>
+                <th className={`${styles.colSummary} ${styles.sectionDividerLeft}`}>Tổng kết</th>
+                <th style={{ minWidth: 140, textAlign: 'left', paddingLeft: 12 }}>Ghi chú</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((row, i) => {
+                const sum = getRowSummary(row);
+                const mDisp = getDailySessionDisplay(row.morning, morningScheduled, isMorningPassed);
+                const aDisp = getDailySessionDisplay(row.afternoon, afternoonScheduled, isAfternoonPassed);
+                const note = row.morning?.note || row.afternoon?.note || '';
+                return (
+                  <tr key={row.student.id}>
+                    <td className={styles.colSTT} style={{ color: 'var(--color-text-muted)' }}>{i + 1}</td>
+                    <td className={styles.colName} style={{ fontWeight: 600 }}>{row.student.name}</td>
+                    <td className={`${styles.colDob} ${styles.sectionDividerRight}`} style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>{row.student.dob || '—'}</td>
+                    <TimeCell record={row.morning} />
+                    <td className={styles.dayDivider}>
+                      <span style={{ color: mDisp.color, fontWeight: mDisp.label !== '–' ? 700 : 400 }}>
+                        {mDisp.label}
+                      </span>
+                    </td>
+                    <TimeCell record={row.afternoon} />
+                    <td className={styles.dayDivider}>
+                      <span style={{ color: aDisp.color, fontWeight: aDisp.label !== '–' ? 700 : 400 }}>
+                        {aDisp.label}
+                      </span>
+                    </td>
+                    <td className={`${styles.colSummary} ${styles.sectionDividerLeft}`}><span style={{ color: sum.color, fontWeight: 700 }}>{sum.label}</span></td>
+                    <td style={{ textAlign: 'left', fontSize: '0.78rem', color: 'var(--color-text-muted)', paddingLeft: 12 }}>{note}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );
@@ -199,13 +278,15 @@ function WeeklyPreview({ from, to }: { from: string; to: string }) {
     const isScheduled = schedule ? (schedule[dow]?.includes(session) ?? true) : true;
 
     const today = data?.today || new Date().toLocaleDateString('en-CA');
+    const startDate = data?.settings?.startDate || today;
     const now = new Date();
     const currentTime = data?.currentTime || `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     const lateEnd = session === 'morning' ? (data?.settings?.morningLateEnd || '08:15') : (data?.settings?.afternoonLateEnd || '13:45');
 
     const [ch, cm] = currentTime.split(':').map(Number);
     const [lh, lm] = lateEnd.split(':').map(Number);
-    const isPassed = date < today || (date === today && (ch * 60 + cm) > (lh * 60 + lm));
+    const isPastStart = date >= startDate;
+    const isPassed = isPastStart && (date < today || (date === today && (ch * 60 + cm) > (lh * 60 + lm)));
 
     if (isScheduled && isPassed) {
       // Session has passed and student was not checked in -> VẮNG!
@@ -242,66 +323,258 @@ function WeeklyPreview({ from, to }: { from: string; to: string }) {
   return (
     <div className={styles.previewTable}>
       <div className={styles.previewHeader}>XEM TRƯỚC – {header} ({dates.length} ngày)</div>
-      <table>
-        <thead>
-          <tr>
-            <th rowSpan={2}>STT</th>
-            <th rowSpan={2}>Họ và Tên</th>
-            <th rowSpan={2} style={{ minWidth: 100 }}>Ngày sinh</th>
-            {shownDates.map((d) => {
-              const dow = new Date(d).getDay();
-              const [, m, dd] = d.split('-');
-              return <th key={d} colSpan={2}>{DAY_LABELS[dow]} {dd}/{m}</th>;
+      <div className={styles.tableScrollWrapper}>
+        <table>
+          <thead>
+            <tr>
+              <th rowSpan={2} className={styles.colSTT}>STT</th>
+              <th rowSpan={2} className={styles.colName}>Họ và Tên</th>
+              <th rowSpan={2} className={`${styles.colDob} ${styles.sectionDividerRight}`}>Ngày sinh</th>
+              {shownDates.map((d) => {
+                const dow = new Date(d).getDay();
+                const [, m, dd] = d.split('-');
+                return (
+                  <th key={d} colSpan={2} className={styles.dayDivider}>
+                    {DAY_LABELS[dow]} {dd}/{m}
+                  </th>
+                );
+              })}
+              {hasMore && <th colSpan={2} className={styles.dayDivider} style={{ color: 'var(--color-text-muted)' }}>...</th>}
+              <th rowSpan={2} className={`${styles.colSummary} ${styles.sectionDividerLeft}`} style={{ background: 'var(--color-present-bg)', color: 'var(--color-present)' }}>Có mặt</th>
+              <th rowSpan={2} className={styles.colSummary} style={{ background: 'var(--color-late-bg)', color: 'var(--color-late)' }}>Muộn</th>
+              <th rowSpan={2} className={styles.colSummary} style={{ background: 'var(--color-absent-bg)', color: 'var(--color-absent)' }}>Vắng</th>
+            </tr>
+            <tr>
+              {shownDates.map((d) => [
+                <th key={`${d}-s`} className={styles.colSession}>S</th>,
+                <th key={`${d}-c`} className={`${styles.colSession} ${styles.dayDivider}`}>C</th>,
+              ])}
+              {hasMore && [
+                <th key="more-s" className={styles.colSession}>S</th>,
+                <th key="more-c" className={`${styles.colSession} ${styles.dayDivider}`}>C</th>,
+              ]}
+            </tr>
+          </thead>
+          <tbody>
+            {students.map((student, i) => {
+              const sum = countSummary(student.id);
+              return (
+                <tr key={student.id}>
+                  <td className={styles.colSTT} style={{ color: 'var(--color-text-muted)' }}>{i + 1}</td>
+                  <td className={styles.colName} style={{ fontWeight: 600 }}>{student.name}</td>
+                  <td className={`${styles.colDob} ${styles.sectionDividerRight}`} style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>{student.dob || '—'}</td>
+                  {shownDates.map((d) => {
+                    const mState = getSessionState(student.id, d, 'morning');
+                    const afState = getSessionState(student.id, d, 'afternoon');
+                    return [
+                      <td key={`${d}-m`} className={styles.colSession}>
+                        <span style={{ color: mState.color, fontWeight: mState.label !== '–' ? 700 : 400 }}>
+                          {mState.label}
+                        </span>
+                      </td>,
+                      <td key={`${d}-a`} className={`${styles.colSession} ${styles.dayDivider}`}>
+                        <span style={{ color: afState.color, fontWeight: afState.label !== '–' ? 700 : 400 }}>
+                          {afState.label}
+                        </span>
+                      </td>,
+                    ];
+                  })}
+                  {hasMore && [
+                    <td key="more-m" className={styles.colSession} style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>...</td>,
+                    <td key="more-a" className={`${styles.colSession} ${styles.dayDivider}`} style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>...</td>,
+                  ]}
+                  <td className={`${styles.colSummary} ${styles.sectionDividerLeft}`} style={{ color: 'var(--color-present)', fontWeight: 700 }}>{sum.present}</td>
+                  <td className={styles.colSummary} style={{ color: 'var(--color-late)', fontWeight: 700 }}>{sum.late}</td>
+                  <td className={styles.colSummary} style={{ color: 'var(--color-absent)', fontWeight: 700 }}>{sum.absent}</td>
+                </tr>
+              );
             })}
-            {hasMore && <th colSpan={2} style={{ color: 'var(--color-text-muted)' }}>...</th>}
-            <th rowSpan={2} style={{ background: 'var(--color-present-bg)', color: 'var(--color-present)' }}>Có mặt</th>
-            <th rowSpan={2} style={{ background: 'var(--color-late-bg)', color: 'var(--color-late)' }}>Muộn</th>
-            <th rowSpan={2} style={{ background: 'var(--color-absent-bg)', color: 'var(--color-absent)' }}>Vắng</th>
-          </tr>
-          <tr>
-            {shownDates.map((d) => [
-              <th key={`${d}-s`}>S</th>,
-              <th key={`${d}-c`}>C</th>,
-            ])}
-            {hasMore && [<th key="more-s">S</th>, <th key="more-c">C</th>]}
-          </tr>
-        </thead>
-        <tbody>
-          {students.map((student, i) => {
-            const sum = countSummary(student.id);
-            return (
-              <tr key={student.id}>
-                <td style={{ color: 'var(--color-text-muted)' }}>{i + 1}</td>
-                <td style={{ textAlign: 'left', fontWeight: 600 }}>{student.name}</td>
-                <td style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>{student.dob || '—'}</td>
-                {shownDates.map((d) => {
-                  const mState = getSessionState(student.id, d, 'morning');
-                  const afState = getSessionState(student.id, d, 'afternoon');
-                  return [
-                    <td key={`${d}-m`}>
-                      <span style={{ color: mState.color, fontWeight: mState.label !== '–' ? 700 : 400 }}>
-                        {mState.label}
-                      </span>
-                    </td>,
-                    <td key={`${d}-a`}>
-                      <span style={{ color: afState.color, fontWeight: afState.label !== '–' ? 700 : 400 }}>
-                        {afState.label}
-                      </span>
-                    </td>,
-                  ];
-                })}
-                {hasMore && [
-                  <td key="more-m" style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>...</td>,
-                  <td key="more-a" style={{ color: 'var(--color-text-muted)', fontSize: '0.85rem' }}>...</td>,
-                ]}
-                <td style={{ color: 'var(--color-present)', fontWeight: 700 }}>{sum.present}</td>
-                <td style={{ color: 'var(--color-late)', fontWeight: 700 }}>{sum.late}</td>
-                <td style={{ color: 'var(--color-absent)', fontWeight: 700 }}>{sum.absent}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ─── Monthly Preview ──────────────────────────────────────────────────────────
+
+function MonthlyPreview({ month }: { month: string }) {
+  const [data, setData] = useState<WeeklyData | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const [yStr, mStr] = month.split('-');
+  const daysInMonth = new Date(parseInt(yStr), parseInt(mStr), 0).getDate();
+  const from = `${month}-01`;
+  const to = `${month}-${String(daysInMonth).padStart(2, '0')}`;
+
+  useEffect(() => {
+    if (!month) return;
+    setLoading(true);
+    api
+      .get<WeeklyData>(`/admin/attendance/range?from=${from}&to=${to}`)
+      .then((r) => setData(r.data))
+      .catch(() => setData(null))
+      .finally(() => setLoading(false));
+  }, [month, from, to]);
+
+  if (loading) {
+    return (
+      <div className={styles.previewTable}>
+        <div className={styles.previewHeader}>XEM TRƯỚC – THÁNG {mStr}/{yStr}</div>
+        <div className={styles.previewEmpty}>Đang tải dữ liệu tháng...</div>
+      </div>
+    );
+  }
+
+  if (!data || data.students.length === 0) {
+    return (
+      <div className={styles.previewTable}>
+        <div className={styles.previewHeader}>XEM TRƯỚC – THÁNG {mStr}/{yStr}</div>
+        <div className={styles.previewEmpty}>Chưa có dữ liệu điểm danh tháng này</div>
+      </div>
+    );
+  }
+
+  const { students, dates, attendances } = data;
+
+  function getSessionState(studentId: number, date: string, session: 'morning' | 'afternoon') {
+    const rec = attendances.find((a) => a.studentId === studentId && a.date === date && a.session === session);
+    if (rec) {
+      return {
+        status: rec.status,
+        label: STATUS_LABEL[rec.status],
+        color: STATUS_COLOR[rec.status],
+        isAbsent: rec.status === 'absent',
+      };
+    }
+
+    const dow = String(new Date(date).getDay());
+    const schedule = data?.schedule;
+    const isScheduled = schedule ? (schedule[dow]?.includes(session) ?? true) : true;
+
+    const today = data?.today || new Date().toLocaleDateString('en-CA');
+    const startDate = data?.settings?.startDate || today;
+    const now = new Date();
+    const currentTime = data?.currentTime || `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const lateEnd = session === 'morning' ? (data?.settings?.morningLateEnd || '08:15') : (data?.settings?.afternoonLateEnd || '13:45');
+
+    const [ch, cm] = currentTime.split(':').map(Number);
+    const [lh, lm] = lateEnd.split(':').map(Number);
+    const isPastStart = date >= startDate;
+    const isPassed = isPastStart && (date < today || (date === today && (ch * 60 + cm) > (lh * 60 + lm)));
+
+    if (isScheduled && isPassed) {
+      return {
+        status: 'absent' as AttendanceStatus,
+        label: '✗',
+        color: STATUS_COLOR['absent'],
+        isAbsent: true,
+      };
+    }
+
+    return {
+      status: null,
+      label: '–',
+      color: 'var(--color-text-muted)',
+      isAbsent: false,
+    };
+  }
+
+  function countSummary(studentId: number) {
+    let present = 0, late = 0, absent = 0, excused = 0;
+    let scheduled = 0;
+    const today = data?.today || new Date().toLocaleDateString('en-CA');
+    const startDate = data?.settings?.startDate || today;
+    dates.forEach((d) => {
+      const dow = String(new Date(d).getDay());
+      const schedule = data?.schedule;
+      const isPastStart = d >= startDate;
+      (['morning', 'afternoon'] as const).forEach((sess) => {
+        const isSched = schedule ? (schedule[dow]?.includes(sess) ?? true) : true;
+        if (isPastStart && isSched) scheduled++;
+        const state = getSessionState(studentId, d, sess);
+        if (state.status === 'present') present++;
+        else if (state.status === 'late') late++;
+        else if (state.status === 'excused') excused++;
+        else if (state.isAbsent) absent++;
+      });
+    });
+    const rate = scheduled > 0 ? Math.round(((present + late * 0.8 + excused * 0.5) / scheduled) * 100) : 100;
+    return { present, late, absent, excused, rate };
+  }
+
+  return (
+    <div className={styles.previewTable}>
+      <div className={styles.previewHeader}>
+        XEM TRƯỚC – THÁNG {mStr}/{yStr} ({dates.length} ngày)
+      </div>
+      <div className={styles.tableScrollWrapper}>
+        <table>
+          <thead>
+            <tr>
+              <th rowSpan={2} className={styles.colSTT}>STT</th>
+              <th rowSpan={2} className={styles.colName}>Họ và Tên</th>
+              <th rowSpan={2} className={`${styles.colDob} ${styles.sectionDividerRight}`}>Ngày sinh</th>
+              {dates.map((d) => {
+                const dow = new Date(d).getDay();
+                const [, , dd] = d.split('-');
+                return (
+                  <th key={d} colSpan={2} className={styles.dayDivider} style={{ minWidth: 60, padding: '6px 2px' }}>
+                    {DAY_LABELS[dow]}
+                    <br />
+                    <span style={{ fontSize: '0.72rem', opacity: 0.8 }}>{dd}</span>
+                  </th>
+                );
+              })}
+              <th rowSpan={2} className={`${styles.colSummary} ${styles.sectionDividerLeft}`} style={{ background: 'var(--color-present-bg)', color: 'var(--color-present)' }}>Có mặt</th>
+              <th rowSpan={2} className={styles.colSummary} style={{ background: 'var(--color-late-bg)', color: 'var(--color-late)' }}>Muộn</th>
+              <th rowSpan={2} className={styles.colSummary} style={{ background: 'var(--color-absent-bg)', color: 'var(--color-absent)' }}>Vắng</th>
+              <th rowSpan={2} className={styles.colSummary} style={{ background: 'var(--color-excused-bg)', color: 'var(--color-excused)' }}>Phép</th>
+              <th rowSpan={2} className={styles.colSummary} style={{ background: 'rgba(59, 130, 246, 0.15)', color: 'var(--color-primary-light)' }}>Tỉ lệ</th>
+            </tr>
+            <tr>
+              {dates.map((d) => [
+                <th key={`${d}-s`} className={styles.colSession}>S</th>,
+                <th key={`${d}-c`} className={`${styles.colSession} ${styles.dayDivider}`}>C</th>,
+              ])}
+            </tr>
+          </thead>
+          <tbody>
+            {students.map((student, i) => {
+              const sum = countSummary(student.id);
+              const rateColor = sum.rate >= 90 ? 'var(--color-present)' : sum.rate >= 70 ? 'var(--color-late)' : 'var(--color-absent)';
+              return (
+                <tr key={student.id}>
+                  <td className={styles.colSTT} style={{ color: 'var(--color-text-muted)' }}>{i + 1}</td>
+                  <td className={styles.colName} style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>{student.name}</td>
+                  <td className={`${styles.colDob} ${styles.sectionDividerRight}`} style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>{student.dob || '—'}</td>
+                  {dates.map((d) => {
+                    const mState = getSessionState(student.id, d, 'morning');
+                    const afState = getSessionState(student.id, d, 'afternoon');
+                    return [
+                      <td key={`${d}-m`} className={styles.colSession}>
+                        <span style={{ color: mState.color, fontWeight: mState.label !== '–' ? 700 : 400, fontSize: '0.82rem' }}>
+                          {mState.label}
+                        </span>
+                      </td>,
+                      <td key={`${d}-a`} className={`${styles.colSession} ${styles.dayDivider}`}>
+                        <span style={{ color: afState.color, fontWeight: afState.label !== '–' ? 700 : 400, fontSize: '0.82rem' }}>
+                          {afState.label}
+                        </span>
+                      </td>,
+                    ];
+                  })}
+                  <td className={`${styles.colSummary} ${styles.sectionDividerLeft}`} style={{ color: 'var(--color-present)', fontWeight: 700 }}>{sum.present}</td>
+                  <td className={styles.colSummary} style={{ color: 'var(--color-late)', fontWeight: 700 }}>{sum.late}</td>
+                  <td className={styles.colSummary} style={{ color: 'var(--color-absent)', fontWeight: 700 }}>{sum.absent}</td>
+                  <td className={styles.colSummary} style={{ color: 'var(--color-excused)', fontWeight: 700 }}>{sum.excused}</td>
+                  <td className={styles.colSummary} style={{ color: rateColor, fontWeight: 800 }}>{sum.rate}%</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -309,8 +582,9 @@ function WeeklyPreview({ from, to }: { from: string; to: string }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ExportPage() {
-  const [mode, setMode] = useState<'daily' | 'weekly'>('daily');
+  const [mode, setMode] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   const [date, setDate] = useState(new Date().toLocaleDateString('en-CA'));
+  const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
   const [weekFrom, setWeekFrom] = useState(() => {
     const d = new Date();
     const day = d.getDay();
@@ -362,11 +636,16 @@ export default function ExportPage() {
     );
   };
 
+  const exportMonthly = () => {
+    const [y, m] = month.split('-');
+    downloadFile(`/export/monthly?month=${month}`, `diemdanh_thang_${m}-${y}.xlsx`);
+  };
+
   return (
     <div className={styles.page}>
       <div className={styles.pageHeader}>
         <h1 className={styles.pageTitle}>📥 Xuất báo cáo Excel</h1>
-        <p className={styles.pageSubtitle}>Tải file Excel điểm danh theo ngày hoặc theo tuần</p>
+        <p className={styles.pageSubtitle}>Tải file Excel điểm danh theo ngày, tuần hoặc cả tháng</p>
       </div>
 
       <div className={styles.tabs}>
@@ -384,9 +663,16 @@ export default function ExportPage() {
         >
           📆 Theo tuần
         </button>
+        <button
+          className={`${styles.tab} ${mode === 'monthly' ? styles.tabActive : ''}`}
+          onClick={() => setMode('monthly')}
+          id="export-tab-monthly"
+        >
+          🗓️ Theo tháng
+        </button>
       </div>
 
-      {mode === 'daily' ? (
+      {mode === 'daily' && (
         <div className={`card ${styles.exportCard} fade-in`}>
           <h2 className={styles.cardTitle}>Xuất điểm danh theo ngày</h2>
           <p className={styles.cardDesc}>
@@ -404,7 +690,9 @@ export default function ExportPage() {
           </div>
           <DailyPreview date={date} />
         </div>
-      ) : (
+      )}
+
+      {mode === 'weekly' && (
         <div className={`card ${styles.exportCard} fade-in`}>
           <h2 className={styles.cardTitle}>Xuất điểm danh theo tuần</h2>
           <p className={styles.cardDesc}>
@@ -425,6 +713,37 @@ export default function ExportPage() {
             </button>
           </div>
           <WeeklyPreview from={weekFrom} to={weekTo} />
+        </div>
+      )}
+
+      {mode === 'monthly' && (
+        <div className={`card ${styles.exportCard} fade-in`}>
+          <h2 className={styles.cardTitle}>Xuất điểm danh theo tháng</h2>
+          <p className={styles.cardDesc}>
+            File Excel tổng hợp ma trận toàn bộ các ngày trong tháng (1 đến 30/31),
+            thống kê chi tiết số buổi có mặt, muộn, vắng, phép và tính tỉ lệ chuyên cần (%) cho từng sinh viên.
+          </p>
+          <div className={styles.actionRow}>
+            <div className={styles.dateField}>
+              <label className={styles.fieldLabel}>Chọn tháng</label>
+              <input
+                type="month"
+                className="input"
+                value={month}
+                onChange={(e) => setMonth(e.target.value)}
+                id="export-monthly-picker"
+              />
+            </div>
+            <button
+              className={`btn btn-success btn-lg ${styles.exportBtn}`}
+              onClick={exportMonthly}
+              disabled={loading}
+              id="export-monthly-btn"
+            >
+              {loading ? <><div className="spinner" /> Đang tạo...</> : '⬇️ Xuất Excel (.xlsx)'}
+            </button>
+          </div>
+          <MonthlyPreview month={month} />
         </div>
       )}
 

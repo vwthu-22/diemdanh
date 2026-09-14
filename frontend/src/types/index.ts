@@ -7,6 +7,7 @@ export interface Student {
   orderNum: number;
   name: string;
   dob: string;
+  deviceId?: string | null;
 }
 
 export interface AttendanceRecord {
@@ -59,4 +60,5 @@ export interface Settings {
   afternoonOnTimeEnd: string;
   afternoonLateEnd: string;
   schedule?: Record<string, string[]>;
+  startDate?: string;
 }

@@ -1,6 +1,8 @@
 'use client';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import Link from 'next/link';
 import api from '@/lib/api';
+import { getLessonsByDate } from '@/data/schedule';
 import { Student, SessionStatusResponse, SessionInfo, AttendanceRecord, AttendanceSession } from '@/types';
 import styles from './page.module.css';
 
@@ -57,12 +59,33 @@ export default function StudentPage() {
     return () => clearInterval(timer);
   }, []);
 
+  const [isDeviceBound, setIsDeviceBound] = useState(false);
+
+  // Check if this device is already bound to a student
+  const checkDeviceBinding = useCallback(async () => {
+    const deviceId = getOrCreateDeviceId();
+    try {
+      const r = await api.get<{ bound: boolean; student: Student | null }>(
+        `/attendance/device-binding?deviceId=${deviceId}`,
+      );
+      if (r.data.bound && r.data.student) {
+        setIsDeviceBound(true);
+        const boundSt = { id: r.data.student.id, name: r.data.student.name };
+        setSelectedStudent(boundSt);
+        localStorage.setItem('cqp22_student', JSON.stringify(boundSt));
+      } else {
+        setIsDeviceBound(false);
+      }
+    } catch {}
+  }, []);
+
   // Load students
   useEffect(() => {
     api.get<Student[]>('/students').then((r) => setStudents(r.data));
     const stored = getStoredStudent();
     if (stored) setSelectedStudent(stored);
-  }, []);
+    checkDeviceBinding();
+  }, [checkDeviceBinding]);
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -83,12 +106,14 @@ export default function StudentPage() {
   useEffect(() => {
     fetchStatus();
     fetchMyRecords();
+    checkDeviceBinding();
     const interval = setInterval(() => {
       fetchStatus();
       fetchMyRecords();
+      checkDeviceBinding();
     }, 30000);
     return () => clearInterval(interval);
-  }, [fetchStatus, fetchMyRecords]);
+  }, [fetchStatus, fetchMyRecords, checkDeviceBinding]);
 
   const selectStudent = (student: Student) => {
     const stored = { id: student.id, name: student.name };
@@ -132,6 +157,7 @@ export default function StudentPage() {
       setMessage({ text: r.data.message, type: r.data.status === 'late' ? 'info' : 'success' });
       fetchMyRecords();
       fetchStatus();
+      checkDeviceBinding();
     } catch (err: any) {
       const errMsg =
         err?.response?.data?.message ||
@@ -148,6 +174,8 @@ export default function StudentPage() {
   const dayNames = ['Chủ nhật','Thứ hai','Thứ ba','Thứ tư','Thứ năm','Thứ sáu','Thứ bảy'];
   const dayName = dayNames[new Date(todayStr).getDay()];
 
+  const todayLessons = useMemo(() => getLessonsByDate(todayStr), [todayStr]);
+
   const getRecordForSession = (session: AttendanceSession) =>
     myRecords.find((r) => r.session === session) || null;
 
@@ -163,9 +191,14 @@ export default function StudentPage() {
               <div className={styles.logoSub}>Trường Cao đẳng Truyền hình</div>
             </div>
           </div>
-          <a href="/admin" className={`btn btn-secondary ${styles.adminLink}`}>
-            ⚙️ Quản lý
-          </a>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Link href="/schedule" className={`btn btn-secondary ${styles.adminLink}`} id="link-header-schedule">
+              📅 Thời khóa biểu
+            </Link>
+            <Link href="/admin" className={`btn btn-secondary ${styles.adminLink}`}>
+              ⚙️ Quản lý
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -177,18 +210,126 @@ export default function StudentPage() {
           <div className={styles.clockDisplay}>{currentTime}</div>
         </div>
 
+        {/* Today's Schedule Banner */}
+        {todayLessons.length > 0 ? (
+          <div
+            className="card fade-in"
+            style={{
+              padding: '14px 18px',
+              background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1))',
+              border: '1px solid rgba(99, 102, 241, 0.3)',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#60a5fa', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 6 }}>
+                📖 Môn học hôm nay ({todayLessons.length} ca)
+              </span>
+              <Link
+                href="/schedule"
+                style={{ fontSize: '0.78rem', color: '#38bdf8', textDecoration: 'none', fontWeight: 600 }}
+              >
+                Xem TKB đầy đủ ➔
+              </Link>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {todayLessons.map((l) => (
+                <div
+                  key={l.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    flexWrap: 'wrap',
+                    gap: 8,
+                    padding: '8px 12px',
+                    borderRadius: 10,
+                    background: 'rgba(15, 23, 42, 0.6)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: '1.2rem' }}>{l.icon}</span>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#f8fafc' }}>{l.subject}</div>
+                      <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
+                        📍 P.{l.room} • 👨‍🏫 GV: {l.teacher}
+                      </div>
+                    </div>
+                  </div>
+                  <span
+                    style={{
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      padding: '3px 8px',
+                      borderRadius: 6,
+                      background: l.session === 'morning' ? 'rgba(245, 158, 11, 0.18)' : 'rgba(59, 130, 246, 0.18)',
+                      color: l.session === 'morning' ? '#fbbf24' : '#60a5fa',
+                      border: l.session === 'morning' ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid rgba(59, 130, 246, 0.3)',
+                    }}
+                  >
+                    {l.sessionLabel} • Tiết {l.periods}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div
+            className="card fade-in"
+            style={{
+              padding: '12px 18px',
+              background: 'rgba(255, 255, 255, 0.03)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <span style={{ fontSize: '0.84rem', color: '#94a3b8' }}>
+              ☕ Hôm nay lớp CQP 22 không có lịch học
+            </span>
+            <Link href="/schedule" style={{ fontSize: '0.78rem', color: '#38bdf8', textDecoration: 'none', fontWeight: 600 }}>
+              Xem thời khóa biểu ➔
+            </Link>
+          </div>
+        )}
+
         {/* Student Selector */}
         <div className={`card ${styles.studentCard} fade-in`}>
-          <div className={styles.studentCardTitle}>👤 Bạn là ai?</div>
+          <div className={styles.studentCardTitle} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>👤 Bạn là ai?</span>
+            {isDeviceBound && (
+              <span style={{ fontSize: '0.72rem', color: 'var(--color-present)', fontWeight: 600 }}>
+                🔒 Máy đã liên kết
+              </span>
+            )}
+          </div>
           {selectedStudent ? (
             <div className={styles.selectedStudentInfo}>
               <div className={styles.selectedName}>{selectedStudent.name}</div>
-              <button
-                className={`btn btn-secondary btn-sm`}
-                onClick={() => setShowPicker(true)}
-              >
-                Đổi
-              </button>
+              {!isDeviceBound ? (
+                <button
+                  className={`btn btn-secondary btn-sm`}
+                  onClick={() => setShowPicker(true)}
+                  id="student-change-btn"
+                >
+                  Đổi
+                </button>
+              ) : (
+                <span
+                  style={{
+                    fontSize: '0.72rem',
+                    color: 'var(--color-text-muted)',
+                    background: 'rgba(255,255,255,0.06)',
+                    padding: '3px 8px',
+                    borderRadius: 6,
+                    border: '1px solid rgba(255,255,255,0.1)',
+                  }}
+                  title="Thiết bị này đã được cố định vào bạn. Nếu đổi điện thoại, vui lòng báo giáo viên reset!"
+                >
+                  🔒 Cố định máy
+                </span>
+              )}
             </div>
           ) : (
             <button

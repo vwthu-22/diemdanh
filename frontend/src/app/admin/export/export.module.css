@@ -74,11 +74,106 @@
   overflow-x: auto;
   margin-bottom: 24px;
   width: 100%;
+  background: rgba(13, 21, 41, 0.6);
+}
+
+.previewTable {
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: var(--color-surface);
+}
+
+.tableScrollWrapper {
+  overflow-x: auto;
+  width: 100%;
 }
 
 .previewTable table {
   width: 100%;
   border-collapse: collapse;
+  text-align: center;
+  font-size: 0.86rem;
+  border-spacing: 0;
+}
+
+.previewTable th,
+.previewTable td {
+  border: 1px solid rgba(255, 255, 255, 0.24) !important;
+  padding: 8px 6px;
+  vertical-align: middle;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.previewTable thead th {
+  background: #162036 !important;
+  color: #e2e8f0;
+  font-weight: 700;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.4) !important;
+}
+
+.previewTable tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.previewTable tbody tr:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* Specific column dividers */
+.dayDivider {
+  border-right: 2px solid rgba(255, 255, 255, 0.55) !important;
+}
+
+.sectionDividerRight {
+  border-right: 2px solid #3b82f6 !important;
+}
+
+.sectionDividerLeft {
+  border-left: 2px solid #3b82f6 !important;
+}
+
+/* Specific column sizing */
+.colSTT {
+  width: 48px;
+  min-width: 48px;
+  max-width: 48px;
+  text-align: center !important;
+}
+
+.colName {
+  min-width: 180px;
+  text-align: left !important;
+  padding-left: 14px !important;
+}
+
+.colDob {
+  width: 110px;
+  min-width: 110px;
+  max-width: 110px;
+  text-align: center !important;
+  white-space: nowrap;
+}
+
+.colSession {
+  width: 48px;
+  min-width: 48px;
+  max-width: 48px;
+  text-align: center !important;
+  font-size: 0.85rem;
+  padding: 6px 2px !important;
+}
+
+.colSummary {
+  width: 65px;
+  min-width: 65px;
+  max-width: 75px;
+  text-align: center !important;
+  font-weight: 700;
 }
 
 .previewEmpty {
@@ -89,9 +184,9 @@
 }
 
 .previewHeader {
-  padding: 10px 16px;
-  font-size: 0.75rem;
-  font-weight: 600;
+  padding: 12px 18px;
+  font-size: 0.78rem;
+  font-weight: 700;
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
