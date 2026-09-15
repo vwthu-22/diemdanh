@@ -175,9 +175,8 @@ export default function SchedulePage() {
                 <div key={lesson.id} className={styles.todayLessonChip}>
                   <div className={styles.todayChipTop}>
                     <span
-                      className={`${styles.todayChipSession} ${
-                        lesson.session === 'morning' ? styles.sessionMorning : styles.sessionAfternoon
-                      }`}
+                      className={`${styles.todayChipSession} ${lesson.session === 'morning' ? styles.sessionMorning : styles.sessionAfternoon
+                        }`}
                     >
                       {lesson.sessionLabel} • Tiết {lesson.periods}
                     </span>
@@ -216,6 +215,11 @@ export default function SchedulePage() {
               id="select-week"
             >
               <option value="all">Toàn bộ kỳ (Tuần 5 – 20)</option>
+              {WEEKS_LIST.map((w) => (
+                <option key={w.week} value={w.week}>
+                  Tuần {w.week}: {w.label}
+                </option>
+              ))}
             </select>
 
             {selectedWeek !== 'all' && currentWeekInfo && (
@@ -250,9 +254,8 @@ export default function SchedulePage() {
           {WEEKS_LIST.map((w) => (
             <button
               key={w.week}
-              className={`${styles.weekPill} ${selectedWeek === w.week ? styles.weekPillActive : ''} ${
-                w.week === currentWeekNumber ? styles.weekPillCurrent : ''
-              }`}
+              className={`${styles.weekPill} ${selectedWeek === w.week ? styles.weekPillActive : ''} ${w.week === currentWeekNumber ? styles.weekPillCurrent : ''
+                }`}
               onClick={() => {
                 setSelectedWeek(w.week);
                 setSelectedDay('all');
@@ -267,6 +270,7 @@ export default function SchedulePage() {
         {/* Day Filter for Fast Mobile Navigation */}
         {selectedWeek !== 'all' && (
           <div className={styles.dayFilterRow}>
+            <span className={styles.dayFilterLabel}>Lọc theo thứ:</span>
             <div className={styles.dayPillsScroll}>
               <button
                 className={`${styles.dayPill} ${selectedDay === 'all' ? styles.dayPillActive : ''}`}
@@ -392,9 +396,8 @@ export default function SchedulePage() {
                               >
                                 <div className={styles.lessonTopRow}>
                                   <span
-                                    className={`${styles.sessionBadge} ${
-                                      l.session === 'morning' ? styles.sessionMorning : styles.sessionAfternoon
-                                    }`}
+                                    className={`${styles.sessionBadge} ${l.session === 'morning' ? styles.sessionMorning : styles.sessionAfternoon
+                                      }`}
                                   >
                                     {l.sessionLabel} • Tiết {l.periods}
                                   </span>
@@ -483,9 +486,8 @@ export default function SchedulePage() {
                         <td className={styles.roomCell}>P.{l.room}</td>
                         <td>
                           <span
-                            className={`${styles.tablePill} ${
-                              l.session === 'morning' ? styles.pillMorning : styles.pillAfternoon
-                            }`}
+                            className={`${styles.tablePill} ${l.session === 'morning' ? styles.pillMorning : styles.pillAfternoon
+                              }`}
                           >
                             {l.sessionLabel}
                           </span>
