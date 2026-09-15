@@ -216,11 +216,6 @@ export default function SchedulePage() {
               id="select-week"
             >
               <option value="all">Toàn bộ kỳ (Tuần 5 – 20)</option>
-              {WEEKS_LIST.map((w) => (
-                <option key={w.week} value={w.week}>
-                  Tuần {w.week}: {w.label}
-                </option>
-              ))}
             </select>
 
             {selectedWeek !== 'all' && currentWeekInfo && (

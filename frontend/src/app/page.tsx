@@ -238,31 +238,32 @@ export default function StudentPage() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    flexWrap: 'wrap',
-                    gap: 8,
-                    padding: '8px 12px',
+                    gap: 12,
+                    padding: '10px 12px',
                     borderRadius: 10,
                     background: 'rgba(15, 23, 42, 0.6)',
                     border: '1px solid rgba(255, 255, 255, 0.08)',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#f8fafc' }}>{l.subject}</div>
-                      <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
-                        Phòng {l.room} • GV: {l.teacher}
-                      </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.88rem', color: '#f8fafc', lineHeight: 1.35 }}>
+                      {l.subject}
+                    </div>
+                    <div style={{ fontSize: '0.76rem', color: '#94a3b8', marginTop: 3 }}>
+                      Phòng {l.room} • GV: {l.teacher}
                     </div>
                   </div>
                   <span
                     style={{
                       fontSize: '0.72rem',
                       fontWeight: 700,
-                      padding: '3px 8px',
+                      padding: '4px 9px',
                       borderRadius: 6,
                       background: l.session === 'morning' ? 'rgba(245, 158, 11, 0.18)' : 'rgba(59, 130, 246, 0.18)',
                       color: l.session === 'morning' ? '#fbbf24' : '#60a5fa',
                       border: l.session === 'morning' ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid rgba(59, 130, 246, 0.3)',
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0,
                     }}
                   >
                     {l.sessionLabel} • Tiết {l.periods}

@@ -197,9 +197,6 @@ export default function SettingsPage() {
       <div className={styles.pageHeader}>
         <div className={styles.titleArea}>
           <h1 className={styles.pageTitle}>Cài đặt hệ thống</h1>
-          <p className={styles.pageSubtitle}>
-            Cấu hình định vị GPS, bán kính điểm danh, khung giờ ca học và thời khóa biểu
-          </p>
         </div>
       </div>
 
@@ -211,10 +208,6 @@ export default function SettingsPage() {
             <h2 className={styles.sectionTitle}>Vị trí & Bán kính GPS</h2>
             <span className={styles.badgePill}>Geofence</span>
           </div>
-
-          <p className={styles.sectionDesc}>
-            Sinh viên mở điện thoại phải nằm trong bán kính này tính từ tâm trường mới có thể điểm danh.
-          </p>
 
           <div className={styles.fieldRow}>
             <div className={styles.field}>
@@ -318,12 +311,7 @@ export default function SettingsPage() {
         <div className={styles.sectionCard}>
           <div className={styles.cardHeader}>
             <h2 className={styles.sectionTitle}>Khung giờ điểm danh</h2>
-            <span className={styles.badgePill}>2 Buổi / ngày</span>
           </div>
-
-          <p className={styles.sectionDesc}>
-            Xác định thời điểm mở cổng, mốc đúng giờ và mốc đóng cổng (hết hạn muộn) cho từng buổi.
-          </p>
 
           {/* Morning Window */}
           <div className={styles.timeSessionBox}>
@@ -440,44 +428,6 @@ export default function SettingsPage() {
             <h2 className={styles.sectionTitle}>
               Thời khóa biểu tuần (Lịch học & Điều khiển ca điểm danh)
             </h2>
-            <p className={styles.sectionDesc} style={{ marginBottom: 0 }}>
-              Bấm vào từng ô để chuyển đổi giữa <strong>Học</strong> và <strong>Nghỉ</strong>. Ca nghỉ học sẽ <strong>không mở cổng điểm danh</strong> và <strong>không bị tính vắng học sinh</strong>. Thầy cô có thể chủ động cấu hình khi lớp nghỉ đột xuất hoặc có lịch học bù/thi vào Thứ 7, Chủ Nhật.
-            </p>
-          </div>
-
-          <div className={styles.presetBar}>
-            <button
-              type="button"
-              className={styles.presetBtn}
-              onClick={() => setPresetSchedule('cqp22')}
-              title="Khôi phục lịch học chuẩn của lớp CQP22"
-            >
-              Chuẩn lịch CQP22
-            </button>
-            <button
-              type="button"
-              className={styles.presetBtn}
-              onClick={() => setPresetSchedule('all')}
-              title="Bật tất cả các ca trong tuần (T2 đến Chủ Nhật)"
-            >
-              Bật cả tuần (T2-CN)
-            </button>
-            <button
-              type="button"
-              className={styles.presetBtn}
-              onClick={() => setPresetSchedule('none')}
-              title="Tắt tất cả các ca"
-            >
-              Nghỉ tất cả
-            </button>
-            <Link
-              href="/schedule"
-              className="btn btn-secondary"
-              style={{ padding: '6px 14px', fontSize: '0.8rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}
-              id="btn-goto-schedule-from-settings"
-            >
-              Xem TKB chi tiết cả kỳ
-            </Link>
           </div>
         </div>
 
@@ -565,42 +515,6 @@ export default function SettingsPage() {
           </button>
         </div>
 
-        {/* Danger Zone */}
-        <div className={styles.dangerCard}>
-          <div className={styles.cardHeader}>
-            <h2 className={styles.sectionTitle} style={{ color: 'var(--color-absent)' }}>
-              Khu vực thử nghiệm & Reset
-            </h2>
-            <span
-              className={styles.badgePill}
-              style={{ background: 'var(--color-absent-bg)', color: 'var(--color-absent)', borderColor: 'var(--color-absent-border)' }}
-            >
-              Danger Zone
-            </span>
-          </div>
-          <p className={styles.sectionDesc}>
-            Các thao tác dọn dẹp bộ nhớ và dữ liệu thử nghiệm trước khi triển khai chính thức cho lớp học:
-          </p>
-
-          <div className={styles.dangerActions}>
-            <button
-              type="button"
-              className={styles.dangerBtn}
-              onClick={clearAllAttendance}
-              disabled={clearing}
-            >
-              {clearing ? 'Đang xóa...' : 'Xóa toàn bộ lượt điểm danh test'}
-            </button>
-
-            <button
-              type="button"
-              className={styles.resetDevBtn}
-              onClick={clearMyDevice}
-            >
-              Reset máy này (thử lại vai trò học sinh)
-            </button>
-          </div>
-        </div>
       </div>
 
       {/* Sticky Bottom Save Bar */}
