@@ -5,10 +5,10 @@ export class Settings {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ name: 'school_lat', type: 'double precision', default: 20.868382 })
+  @Column({ name: 'school_lat', type: 'float', default: 20.868382 })
   schoolLat: number;
 
-  @Column({ name: 'school_lng', type: 'double precision', default: 105.857279 })
+  @Column({ name: 'school_lng', type: 'float', default: 105.857279 })
   schoolLng: number;
 
   @Column({ name: 'radius_meters', default: 100 })

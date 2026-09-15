@@ -291,7 +291,6 @@ export default function SettingsPage() {
                   style={{ width: 80, padding: '4px 8px', textAlign: 'center', fontWeight: 700 }}
                   id="settings-radius-input"
                 />
-                <span className={styles.radiusBadge}>{radiusFormatted}</span>
               </div>
             </div>
 

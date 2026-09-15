@@ -386,14 +386,6 @@ export default function DashboardPage() {
           >
             Hôm nay
           </button>
-          <button
-            type="button"
-            className={`${styles.refreshBtn} ${refreshing ? styles.refreshRotating : ''}`}
-            onClick={() => fetchData(true)}
-            title="Làm mới dữ liệu"
-          >
-            {refreshing ? 'Đang tải...' : 'Làm mới'}
-          </button>
         </div>
       </div>
 
