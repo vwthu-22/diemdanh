@@ -38,9 +38,9 @@ const STUDENTS = [
   { orderNum: 28, name: 'Phạm Xuân Tùng', dob: '05/04/2008' },
   { orderNum: 29, name: 'Hà Xuân Tùng', dob: '13/01/2001' },
   { orderNum: 30, name: 'Đàm Quốc Triệu', dob: '29/01/2004' },
-  { orderNum: 31, name: 'Nguyễn Hữu Ngọc', dob: '11/11/1111' },
+  { orderNum: 31, name: 'Nguyễn Hữu Ngọc', dob: '20/02/2006' },
   { orderNum: 32, name: 'Hà Hải Nam', dob: '11/11/1111' },
-  { orderNum: 33, name: 'Quang Đức', dob: '11/11/1111' },
+  { orderNum: 33, name: 'Ngô Quang Đức', dob: '12/11/2006' },
 ];
 
 @Injectable()
@@ -60,12 +60,20 @@ export class SeedService implements OnApplicationBootstrap {
   private async seedStudents() {
     for (const s of STUDENTS) {
       const exists = await this.studentRepo.findOne({
-        where: [{ orderNum: s.orderNum }, { name: s.name }],
+        where: { orderNum: s.orderNum },
       });
       if (!exists) {
         const student = this.studentRepo.create(s);
         await this.studentRepo.save(student);
         console.log(`✅ Seeded student #${s.orderNum}: ${s.name}`);
+      } else {
+        // Tự động đồng bộ và cập nhật lại Họ tên / Ngày sinh mới nhất
+        if (exists.name !== s.name || exists.dob !== s.dob) {
+          exists.name = s.name;
+          exists.dob = s.dob;
+          await this.studentRepo.save(exists);
+          console.log(`🔄 Updated student #${s.orderNum}: ${s.name} (${s.dob})`);
+        }
       }
     }
   }
