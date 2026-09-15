@@ -12,10 +12,10 @@ const SESSION_LABELS: Record<AttendanceSession, string> = {
 };
 
 const STATUS_MAP: Record<string, { label: string; className: string }> = {
-  present: { label: '✓ Có mặt', className: styles.statusPresent },
-  late:    { label: '⚡ Muộn',   className: styles.statusLate },
-  absent:  { label: '✗ Vắng',   className: styles.statusAbsent },
-  excused: { label: '📋 Có phép', className: styles.statusExcused },
+  present: { label: 'Có mặt', className: styles.statusPresent },
+  late:    { label: 'Muộn',   className: styles.statusLate },
+  absent:  { label: 'Vắng',   className: styles.statusAbsent },
+  excused: { label: 'Có phép', className: styles.statusExcused },
 };
 
 function getOrCreateDeviceId(): string {
@@ -185,7 +185,6 @@ export default function StudentPage() {
       <header className={styles.header}>
         <div className={styles.headerInner}>
           <div className={styles.logo}>
-            <div className={styles.logoIcon}>📹</div>
             <div>
               <div className={styles.logoTitle}>CQP 22</div>
               <div className={styles.logoSub}>Trường Cao đẳng Truyền hình</div>
@@ -193,10 +192,10 @@ export default function StudentPage() {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Link href="/schedule" className={`btn btn-secondary ${styles.adminLink}`} id="link-header-schedule">
-              📅 Thời khóa biểu
+              Thời khóa biểu
             </Link>
             <Link href="/admin" className={`btn btn-secondary ${styles.adminLink}`}>
-              ⚙️ Quản lý
+              Quản lý
             </Link>
           </div>
         </div>
@@ -222,13 +221,13 @@ export default function StudentPage() {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
               <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#60a5fa', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 6 }}>
-                📖 Môn học hôm nay ({todayLessons.length} ca)
+                Môn học hôm nay ({todayLessons.length} ca)
               </span>
               <Link
                 href="/schedule"
                 style={{ fontSize: '0.78rem', color: '#38bdf8', textDecoration: 'none', fontWeight: 600 }}
               >
-                Xem TKB đầy đủ ➔
+                Xem TKB đầy đủ →
               </Link>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -248,11 +247,10 @@ export default function StudentPage() {
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: '1.2rem' }}>{l.icon}</span>
                     <div>
                       <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#f8fafc' }}>{l.subject}</div>
                       <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
-                        📍 P.{l.room} • 👨‍🏫 GV: {l.teacher}
+                        Phòng {l.room} • GV: {l.teacher}
                       </div>
                     </div>
                   </div>
@@ -286,10 +284,10 @@ export default function StudentPage() {
             }}
           >
             <span style={{ fontSize: '0.84rem', color: '#94a3b8' }}>
-              ☕ Hôm nay lớp CQP 22 không có lịch học
+              Hôm nay lớp CQP 22 không có lịch học
             </span>
             <Link href="/schedule" style={{ fontSize: '0.78rem', color: '#38bdf8', textDecoration: 'none', fontWeight: 600 }}>
-              Xem thời khóa biểu ➔
+              Xem thời khóa biểu →
             </Link>
           </div>
         )}
@@ -297,10 +295,10 @@ export default function StudentPage() {
         {/* Student Selector */}
         <div className={`card ${styles.studentCard} fade-in`}>
           <div className={styles.studentCardTitle} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span>👤 Bạn là ai?</span>
+            <span>Bạn là ai?</span>
             {isDeviceBound && (
               <span style={{ fontSize: '0.72rem', color: 'var(--color-present)', fontWeight: 600 }}>
-                🔒 Máy đã liên kết
+                Máy đã liên kết
               </span>
             )}
           </div>
@@ -327,7 +325,7 @@ export default function StudentPage() {
                   }}
                   title="Thiết bị này đã được cố định vào bạn. Nếu đổi điện thoại, vui lòng báo giáo viên reset!"
                 >
-                  🔒 Cố định máy
+                  Cố định máy
                 </span>
               )}
             </div>
@@ -347,7 +345,7 @@ export default function StudentPage() {
             <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
               <div className={styles.modalHeader}>
                 <h3>Chọn tên của bạn</h3>
-                <button onClick={() => setShowPicker(false)} className={styles.modalClose}>✕</button>
+                <button onClick={() => setShowPicker(false)} className={styles.modalClose}>Đóng</button>
               </div>
               <div className={styles.studentList}>
                 {students.map((s) => (
@@ -358,7 +356,7 @@ export default function StudentPage() {
                   >
                     <span className={styles.studentNum}>{s.orderNum}</span>
                     <span className={styles.studentName}>{s.name}</span>
-                    {selectedStudent?.id === s.id && <span className={styles.checkmark}>✓</span>}
+                    {selectedStudent?.id === s.id && <span className={styles.checkmark}>Đã chọn</span>}
                   </button>
                 ))}
               </div>
@@ -377,7 +375,7 @@ export default function StudentPage() {
                 <div key={session.session} className={`card ${styles.sessionCard}`}>
                   <div className={styles.sessionHeader}>
                     <div className={styles.sessionLabel}>
-                      {session.session === 'morning' ? '🌅' : '☀️'} {session.label}
+                      {session.label}
                     </div>
                     <div className={`${styles.sessionTimeBadge} ${
                       session.isScheduled === false
@@ -387,15 +385,15 @@ export default function StudentPage() {
                         : styles.sessionClosed
                     }`}>
                       {session.isScheduled === false
-                        ? '⚪ Không có tiết'
+                        ? 'Không có tiết'
                         : session.isOpen
-                        ? (session.isOnTime ? '🟢 Đang mở' : '🟡 Muộn')
-                        : '🔴 Đã đóng'}
+                        ? (session.isOnTime ? 'Đang mở' : 'Muộn')
+                        : 'Đã đóng'}
                     </div>
                   </div>
 
                   <div className={styles.sessionTime}>
-                    ⏰ {session.start} → {session.lateEnd}
+                    Thời gian: {session.start} – {session.lateEnd}
                     <span className={styles.onTimeHint}>(Đúng giờ trước {session.onTimeEnd})</span>
                   </div>
 
@@ -410,7 +408,7 @@ export default function StudentPage() {
                     </div>
                   ) : session.isScheduled === false ? (
                     <div className={styles.closedState}>
-                      😴 Buổi này lớp không có lịch học
+                      Buổi này lớp không có lịch học
                     </div>
                   ) : session.isOpen ? (
                     <button
@@ -418,7 +416,7 @@ export default function StudentPage() {
                       onClick={() => checkIn(session.session)}
                       disabled={loading || !selectedStudent}
                     >
-                      {loading ? <><div className="spinner" /> Đang xử lý...</> : '📍 Điểm danh ngay'}
+                      {loading ? <><div className="spinner" /> Đang xử lý...</> : 'Điểm danh ngay'}
                     </button>
                   ) : (
                     <div className={styles.closedState}>
@@ -440,7 +438,7 @@ export default function StudentPage() {
 
         {/* Footer note */}
         <p className={`${styles.footerNote} text-muted text-center`}>
-          🔒 Điểm danh yêu cầu có mặt tại trường và GPS bật
+          Điểm danh yêu cầu có mặt tại trường và bật GPS
         </p>
       </main>
     </div>

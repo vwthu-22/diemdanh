@@ -25,10 +25,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (isLoginPage) return <>{children}</>;
 
   const navItems = [
-    { href: '/admin/dashboard', label: 'Dashboard', icon: '📊', id: 'nav-dashboard' },
-    { href: '/schedule', label: 'Thời khóa biểu', icon: '📅', id: 'nav-schedule' },
-    { href: '/admin/export', label: 'Xuất file', icon: '📥', id: 'nav-export' },
-    { href: '/admin/settings', label: 'Cài đặt', icon: '⚙️', id: 'nav-settings' },
+    { href: '/admin/dashboard', label: 'Dashboard', id: 'nav-dashboard' },
+    { href: '/schedule', label: 'Thời khóa biểu', id: 'nav-schedule' },
+    { href: '/admin/export', label: 'Xuất file', id: 'nav-export' },
+    { href: '/admin/settings', label: 'Cài đặt', id: 'nav-settings' },
   ];
 
   return (
@@ -37,7 +37,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside className={styles.sidebar}>
         <div className={styles.sidebarTop}>
           <div className={styles.sidebarLogo}>
-            <div className={styles.sidebarLogoIcon}>📹</div>
             <div>
               <div className={styles.sidebarTitle}>CQP 22</div>
               <div className={styles.sidebarSub}>Quản lý điểm danh</div>
@@ -52,7 +51,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 id={item.id}
                 className={`${styles.navItem} ${pathname === item.href ? styles.navItemActive : ''}`}
               >
-                <span className={styles.navIcon}>{item.icon}</span>
                 <span>{item.label}</span>
               </Link>
             ))}
@@ -61,11 +59,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         <div className={styles.sidebarBottom}>
           <Link href="/" className={styles.navItem} id="nav-student-view">
-            <span className={styles.navIcon}>👤</span>
             <span>Trang sinh viên</span>
           </Link>
           <button onClick={logout} className={styles.logoutBtn} id="nav-logout">
-            <span className={styles.navIcon}>🚪</span>
             <span>Đăng xuất</span>
           </button>
         </div>
@@ -74,13 +70,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* ── Mobile Top Header ── */}
       <header className={styles.mobileHeader}>
         <div className={styles.mobileHeaderInner}>
-          <span className={styles.mobileLogo}>📹 CQP 22</span>
+          <span className={styles.mobileLogo}>CQP 22</span>
           <div className={styles.mobileHeaderActions}>
             <Link href="/" className={styles.mobileHeaderLink} title="Trang sinh viên">
-              👤
+              Trang sinh viên
             </Link>
             <button onClick={logout} className={styles.mobileLogoutBtn} title="Đăng xuất">
-              🚪
+              Đăng xuất
             </button>
           </div>
         </div>
@@ -100,7 +96,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               id={`mobile-${item.id}`}
               className={`${styles.bottomNavItem} ${isActive ? styles.bottomNavItemActive : ''}`}
             >
-              <span className={styles.bottomNavIcon}>{item.icon}</span>
               <span className={styles.bottomNavLabel}>{item.label}</span>
               {isActive && <span className={styles.bottomNavIndicator} />}
             </Link>

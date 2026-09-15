@@ -87,16 +87,28 @@ export default function SettingsPage() {
     setLoading(true);
     setMessage(null);
     try {
-      const res = await api.patch<Settings>('/settings', form);
+      const token = localStorage.getItem('admin_token');
+      if (!token) {
+        setMessage({ text: 'Chưa đăng nhập quyền quản trị! Vui lòng đăng nhập lại.', type: 'error' });
+        return;
+      }
+      const payload = {
+        ...form,
+        radiusMeters: Math.max(0, Math.min(200, Number(form.radiusMeters ?? 100))),
+        startDate: form.startDate || '2026-09-15',
+      };
+      const res = await api.patch<Settings>('/settings', payload);
       if (res.data) {
         setSettings(res.data);
         setForm(res.data);
       }
       setMessage({ text: 'Đã lưu cấu hình hệ thống thành công!', type: 'success' });
-      // Clear toast after 4s
       setTimeout(() => setMessage(null), 4000);
-    } catch {
-      setMessage({ text: 'Lỗi khi lưu cài đặt. Vui lòng kiểm tra lại quyền admin!', type: 'error' });
+    } catch (err: any) {
+      const errText =
+        err?.response?.data?.message ||
+        (err?.response?.status === 401 ? 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!' : 'Lỗi khi lưu cài đặt. Vui lòng thử lại!');
+      setMessage({ text: errText, type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -165,8 +177,7 @@ export default function SettingsPage() {
   };
 
   const radiusFormatted = useMemo(() => {
-    const r = form.radiusMeters || 150;
-    if (r >= 1000) return `${(r / 1000).toFixed(1)} km`;
+    const r = form.radiusMeters !== undefined ? form.radiusMeters : 100;
     return `${r} m`;
   }, [form.radiusMeters]);
 
@@ -185,9 +196,7 @@ export default function SettingsPage() {
       {/* Header */}
       <div className={styles.pageHeader}>
         <div className={styles.titleArea}>
-          <h1 className={styles.pageTitle}>
-            <span>⚙️</span> Cài đặt hệ thống
-          </h1>
+          <h1 className={styles.pageTitle}>Cài đặt hệ thống</h1>
           <p className={styles.pageSubtitle}>
             Cấu hình định vị GPS, bán kính điểm danh, khung giờ ca học và thời khóa biểu
           </p>
@@ -199,9 +208,7 @@ export default function SettingsPage() {
         {/* Card 1: GPS Location & Geofence */}
         <div className={styles.sectionCard}>
           <div className={styles.cardHeader}>
-            <h2 className={styles.sectionTitle}>
-              <span>📍</span> Vị trí & Bán kính GPS
-            </h2>
+            <h2 className={styles.sectionTitle}>Vị trí & Bán kính GPS</h2>
             <span className={styles.badgePill}>Geofence</span>
           </div>
 
@@ -249,7 +256,7 @@ export default function SettingsPage() {
                   <div className="spinner" /> Đang dò sóng GPS...
                 </>
               ) : (
-                '📡 Lấy vị trí hiện tại của tôi'
+                'Lấy vị trí hiện tại của tôi'
               )}
             </button>
 
@@ -260,7 +267,7 @@ export default function SettingsPage() {
                 rel="noopener noreferrer"
                 className={styles.mapLink}
               >
-                🗺️ Xem trên Google Maps →
+                Xem trên Google Maps
               </a>
             )}
           </div>
@@ -268,24 +275,42 @@ export default function SettingsPage() {
           {/* Radius Slider & Box */}
           <div className={styles.radiusBox}>
             <div className={styles.radiusHeader}>
-              <span className={styles.label}>Bán kính cho phép điểm danh</span>
-              <span className={styles.radiusBadge}>{radiusFormatted}</span>
+              <span className={styles.label}>Bán kính cho phép điểm danh (0 – 200 m)</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <input
+                  type="number"
+                  min={0}
+                  max={200}
+                  step={5}
+                  value={form.radiusMeters !== undefined ? form.radiusMeters : 100}
+                  onChange={(e) => {
+                    const val = Math.max(0, Math.min(200, parseInt(e.target.value) || 0));
+                    update('radiusMeters', val);
+                  }}
+                  className="input"
+                  style={{ width: 80, padding: '4px 8px', textAlign: 'center', fontWeight: 700 }}
+                  id="settings-radius-input"
+                />
+                <span className={styles.radiusBadge}>{radiusFormatted}</span>
+              </div>
             </div>
 
             <input
               type="range"
-              min={50}
-              max={5000}
-              step={50}
-              value={form.radiusMeters || 150}
-              onChange={(e) => update('radiusMeters', parseInt(e.target.value) || 50)}
+              min={0}
+              max={200}
+              step={5}
+              value={form.radiusMeters !== undefined ? form.radiusMeters : 100}
+              onChange={(e) => update('radiusMeters', parseInt(e.target.value) || 0)}
               className={styles.rangeSlider}
+              id="settings-radius-range"
             />
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
+              <span>0 m</span>
               <span>50 m (Trong lớp)</span>
-              <span>500 m (Khuôn viên)</span>
-              <span>5 km (Khu vực lân cận)</span>
+              <span>100 m (Khuôn viên)</span>
+              <span>200 m (Tối đa)</span>
             </div>
           </div>
         </div>
@@ -293,9 +318,7 @@ export default function SettingsPage() {
         {/* Card 2: Check-in Time Windows */}
         <div className={styles.sectionCard}>
           <div className={styles.cardHeader}>
-            <h2 className={styles.sectionTitle}>
-              <span>⏰</span> Khung giờ điểm danh
-            </h2>
+            <h2 className={styles.sectionTitle}>Khung giờ điểm danh</h2>
             <span className={styles.badgePill}>2 Buổi / ngày</span>
           </div>
 
@@ -306,7 +329,7 @@ export default function SettingsPage() {
           {/* Morning Window */}
           <div className={styles.timeSessionBox}>
             <div className={styles.timeSessionHeader}>
-              <span>🌅 Ca Sáng</span>
+              <span>Ca Sáng</span>
               <span className={styles.timePillBadge}>
                 {getWindowSummary(form.morningStart, form.morningOnTimeEnd, form.morningLateEnd)}
               </span>
@@ -349,7 +372,7 @@ export default function SettingsPage() {
           {/* Afternoon Window */}
           <div className={styles.timeSessionBox}>
             <div className={styles.timeSessionHeader}>
-              <span>☀️ Ca Chiều</span>
+              <span>Ca Chiều</span>
               <span className={styles.timePillBadge}>
                 {getWindowSummary(form.afternoonStart, form.afternoonOnTimeEnd, form.afternoonLateEnd)}
               </span>
@@ -393,7 +416,7 @@ export default function SettingsPage() {
           <div style={{ marginTop: 16, padding: '14px 16px', background: 'rgba(59, 130, 246, 0.08)', borderRadius: 'var(--radius-md)', border: '1px solid rgba(59, 130, 246, 0.25)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
               <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-primary-light)' }}>
-                🗓️ Ngày bắt đầu áp dụng tính điểm danh
+                Ngày bắt đầu áp dụng tính điểm danh
               </span>
               <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
                 Các ngày trước mốc này hiển thị &quot;–&quot; và không bị tính vắng
@@ -402,7 +425,7 @@ export default function SettingsPage() {
             <input
               className="input"
               type="date"
-              value={form.startDate || '2026-09-14'}
+              value={form.startDate || '2026-09-15'}
               onChange={(e) => update('startDate', e.target.value)}
               id="settings-start-date"
               style={{ maxWidth: 220 }}
@@ -416,7 +439,7 @@ export default function SettingsPage() {
         <div className={styles.scheduleHeaderRow}>
           <div>
             <h2 className={styles.sectionTitle}>
-              <span>📅</span> Thời khóa biểu tuần (Lịch học & Điều khiển ca điểm danh)
+              Thời khóa biểu tuần (Lịch học & Điều khiển ca điểm danh)
             </h2>
             <p className={styles.sectionDesc} style={{ marginBottom: 0 }}>
               Bấm vào từng ô để chuyển đổi giữa <strong>Học</strong> và <strong>Nghỉ</strong>. Ca nghỉ học sẽ <strong>không mở cổng điểm danh</strong> và <strong>không bị tính vắng học sinh</strong>. Thầy cô có thể chủ động cấu hình khi lớp nghỉ đột xuất hoặc có lịch học bù/thi vào Thứ 7, Chủ Nhật.
@@ -430,7 +453,7 @@ export default function SettingsPage() {
               onClick={() => setPresetSchedule('cqp22')}
               title="Khôi phục lịch học chuẩn của lớp CQP22"
             >
-              📋 Chuẩn lịch CQP22
+              Chuẩn lịch CQP22
             </button>
             <button
               type="button"
@@ -438,7 +461,7 @@ export default function SettingsPage() {
               onClick={() => setPresetSchedule('all')}
               title="Bật tất cả các ca trong tuần (T2 đến Chủ Nhật)"
             >
-              ⚡ Bật cả tuần (T2-CN)
+              Bật cả tuần (T2-CN)
             </button>
             <button
               type="button"
@@ -446,7 +469,7 @@ export default function SettingsPage() {
               onClick={() => setPresetSchedule('none')}
               title="Tắt tất cả các ca"
             >
-              ❌ Nghỉ tất cả
+              Nghỉ tất cả
             </button>
             <Link
               href="/schedule"
@@ -454,7 +477,7 @@ export default function SettingsPage() {
               style={{ padding: '6px 14px', fontSize: '0.8rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}
               id="btn-goto-schedule-from-settings"
             >
-              📖 Xem TKB chi tiết cả kỳ →
+              Xem TKB chi tiết cả kỳ
             </Link>
           </div>
         </div>
@@ -473,7 +496,7 @@ export default function SettingsPage() {
               {/* Morning Row */}
               <tr>
                 <td style={{ fontWeight: 700, textAlign: 'left', color: 'var(--color-text-primary)' }}>
-                  🌅 Buổi Sáng
+                  Buổi Sáng
                 </td>
                 {DAYS.map((d) => {
                   const active = schedule[d.key]?.includes('morning') ?? false;
@@ -484,7 +507,7 @@ export default function SettingsPage() {
                       onClick={() => toggleSchedule(d.key, 'morning')}
                     >
                       <div className={`${styles.scheduleToggleCard} ${active ? styles.toggleActive : styles.toggleInactive}`}>
-                        <div className={styles.toggleTitle}>{active ? '✓ Học' : '✕ Nghỉ'}</div>
+                        <div className={styles.toggleTitle}>{active ? 'Học' : 'Nghỉ'}</div>
                         <div className={styles.toggleSub}>{active ? 'Có điểm danh' : 'Bỏ qua (không vắng)'}</div>
                       </div>
                     </td>
@@ -495,7 +518,7 @@ export default function SettingsPage() {
               {/* Afternoon Row */}
               <tr>
                 <td style={{ fontWeight: 700, textAlign: 'left', color: 'var(--color-text-primary)' }}>
-                  ☀️ Buổi Chiều
+                  Buổi Chiều
                 </td>
                 {DAYS.map((d) => {
                   const active = schedule[d.key]?.includes('afternoon') ?? false;
@@ -506,7 +529,7 @@ export default function SettingsPage() {
                       onClick={() => toggleSchedule(d.key, 'afternoon')}
                     >
                       <div className={`${styles.scheduleToggleCard} ${active ? styles.toggleActive : styles.toggleInactive}`}>
-                        <div className={styles.toggleTitle}>{active ? '✓ Học' : '✕ Nghỉ'}</div>
+                        <div className={styles.toggleTitle}>{active ? 'Học' : 'Nghỉ'}</div>
                         <div className={styles.toggleSub}>{active ? 'Có điểm danh' : 'Bỏ qua (không vắng)'}</div>
                       </div>
                     </td>
@@ -523,9 +546,7 @@ export default function SettingsPage() {
         {/* Info Card */}
         <div className={styles.infoCard}>
           <div className={styles.cardHeader}>
-            <h2 className={styles.sectionTitle}>
-              <span>📌</span> Quản trị & Bảo mật
-            </h2>
+            <h2 className={styles.sectionTitle}>Quản trị & Bảo mật</h2>
             <span className={styles.badgePill}>Hệ thống</span>
           </div>
           <p className={styles.sectionDesc}>
@@ -541,7 +562,7 @@ export default function SettingsPage() {
             onClick={copyCredentials}
             style={{ marginTop: 12 }}
           >
-            {copied ? '✓ Đã sao chép!' : '📋 Sao chép thông tin'}
+            {copied ? 'Đã sao chép' : 'Sao chép thông tin'}
           </button>
         </div>
 
@@ -549,7 +570,7 @@ export default function SettingsPage() {
         <div className={styles.dangerCard}>
           <div className={styles.cardHeader}>
             <h2 className={styles.sectionTitle} style={{ color: 'var(--color-absent)' }}>
-              <span>🛡️</span> Khu vực thử nghiệm & Reset
+              Khu vực thử nghiệm & Reset
             </h2>
             <span
               className={styles.badgePill}
@@ -569,7 +590,7 @@ export default function SettingsPage() {
               onClick={clearAllAttendance}
               disabled={clearing}
             >
-              {clearing ? 'Đang xóa...' : '🗑️ Xóa toàn bộ lượt điểm danh test'}
+              {clearing ? 'Đang xóa...' : 'Xóa toàn bộ lượt điểm danh test'}
             </button>
 
             <button
@@ -577,7 +598,7 @@ export default function SettingsPage() {
               className={styles.resetDevBtn}
               onClick={clearMyDevice}
             >
-              🧹 Reset máy này (thử lại vai trò học sinh)
+              Reset máy này (thử lại vai trò học sinh)
             </button>
           </div>
         </div>
@@ -588,7 +609,7 @@ export default function SettingsPage() {
         <div className={styles.saveBarLeft}>
           {message && (
             <div className={`${styles.toastMsg} ${message.type === 'success' ? styles.toastSuccess : styles.toastError}`}>
-              {message.type === 'success' ? '✓ ' : '✕ '} {message.text}
+              {message.text}
             </div>
           )}
         </div>
@@ -605,7 +626,7 @@ export default function SettingsPage() {
               <div className="spinner" /> Đang lưu cấu hình...
             </>
           ) : (
-            '💾 Lưu tất cả cài đặt'
+            'Lưu tất cả cài đặt'
           )}
         </button>
       </div>

@@ -83,7 +83,6 @@ export default function SchedulePage() {
       {/* Header */}
       <header className={styles.header}>
         <div className={styles.headerLeft}>
-          <div className={styles.headerIcon}>📅</div>
           <div>
             <h1 className={styles.title}>
               Thời Khóa Biểu Lớp CQP 22
@@ -96,10 +95,10 @@ export default function SchedulePage() {
 
         <div className={styles.headerRight}>
           <Link href="/" className="btn btn-primary" id="btn-goto-checkin">
-            ✅ Vào điểm danh
+            Vào điểm danh
           </Link>
           <Link href="/admin" className="btn btn-secondary" id="btn-goto-admin">
-            ⚙️ Quản trị
+            Quản trị
           </Link>
         </div>
       </header>
@@ -108,7 +107,7 @@ export default function SchedulePage() {
       <div className={styles.todayBanner}>
         <div>
           <div className={styles.todayBannerTitle}>
-            <span>⚡ Lịch học hôm nay</span>
+            <span>Lịch học hôm nay</span>
             {todayLessons.length > 0 && (
               <span style={{ background: '#22c55e', color: '#fff', fontSize: '0.68rem', padding: '1px 6px', borderRadius: 4 }}>
                 Có {todayLessons.length} ca học
@@ -128,7 +127,7 @@ export default function SchedulePage() {
         <div>
           {todayLessons.length === 0 ? (
             <div style={{ color: '#94a3b8', fontSize: '0.9rem', fontStyle: 'italic' }}>
-              🎉 Hôm nay lớp CQP 22 không có lịch học!
+              Hôm nay lớp CQP 22 không có lịch học!
             </div>
           ) : (
             <div className={styles.todayLessonsList}>
@@ -143,10 +142,10 @@ export default function SchedulePage() {
                   </span>
                   <div>
                     <div className={styles.todayChipSubject}>
-                      {lesson.icon} {lesson.subject}
+                      {lesson.subject}
                     </div>
                     <div className={styles.todayChipMeta}>
-                      📍 P.{lesson.room} • 👨‍🏫 GV: {lesson.teacher}
+                      Phòng {lesson.room} • GV: {lesson.teacher}
                     </div>
                   </div>
                 </div>
@@ -166,7 +165,7 @@ export default function SchedulePage() {
             id="select-week"
             title="Chọn nhanh tuần học"
           >
-            <option value="all">🗓️ Toàn bộ kỳ học (Tuần 5 – Tuần 20)</option>
+            <option value="all">Toàn bộ kỳ học (Tuần 5 – Tuần 20)</option>
             {WEEKS_LIST.map((w) => (
               <option key={w.week} value={w.week}>
                 Tuần {w.week}: {w.label}
@@ -200,7 +199,7 @@ export default function SchedulePage() {
           <input
             type="text"
             className={`input ${styles.searchInput}`}
-            placeholder="🔍 Tìm môn, phòng, GV..."
+            placeholder="Tìm môn, phòng, GV..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -212,7 +211,7 @@ export default function SchedulePage() {
               id="btn-view-grid"
               title="Xem dạng lưới thời khóa biểu"
             >
-              📅 Lưới
+              Lưới
             </button>
             <button
               className={`${styles.viewBtn} ${viewMode === 'table' ? styles.viewBtnActive : ''}`}
@@ -220,7 +219,7 @@ export default function SchedulePage() {
               id="btn-view-table"
               title="Xem dạng bảng Excel chi tiết"
             >
-              📋 Danh sách
+              Danh sách
             </button>
           </div>
         </div>
@@ -236,7 +235,7 @@ export default function SchedulePage() {
               <div key={weekNum} className={styles.weekSection}>
                 <div className={styles.weekHeader}>
                   <div className={styles.weekTitle}>
-                    <span>📖 TUẦN {weekNum}</span>
+                    <span>TUẦN {weekNum}</span>
                     <span style={{ fontSize: '0.85rem', color: '#94a3b8', fontWeight: 500 }}>
                       ({weekInfo?.label})
                     </span>
@@ -271,7 +270,6 @@ export default function SchedulePage() {
                         <div className={styles.dayColBody}>
                           {lessons.length === 0 ? (
                             <div className={styles.emptyDay}>
-                              <span style={{ fontSize: '1.2rem', opacity: 0.5 }}>☕</span>
                               <span>Nghỉ cả ngày</span>
                             </div>
                           ) : (
@@ -295,17 +293,16 @@ export default function SchedulePage() {
                                 </div>
 
                                 <div className={styles.lessonSubject}>
-                                  <span>{l.icon}</span>
                                   <span>{l.subject}</span>
                                 </div>
 
                                 <div className={styles.lessonMetaGrid}>
                                   <div className={styles.lessonMetaItem}>
-                                    <span>👨‍🏫</span>
+                                    <span>GV:</span>
                                     <span className={styles.teacherName}>{l.teacher}</span>
                                   </div>
                                   <div className={styles.lessonMetaItem}>
-                                    <span>⏱️</span>
+                                    <span>Thời lượng:</span>
                                     <span>{l.periodCount} tiết • {l.format}</span>
                                   </div>
                                 </div>
@@ -362,11 +359,10 @@ export default function SchedulePage() {
                         {l.dayLabel}
                       </td>
                       <td style={{ whiteSpace: 'nowrap', fontWeight: isToday ? 800 : 400 }}>
-                        {l.dateDisplay} {isToday && '⭐'}
+                        {l.dateDisplay} {isToday && '(Hôm nay)'}
                       </td>
                       <td style={{ fontWeight: 600, color: '#94a3b8' }}>{l.classGroup}</td>
                       <td style={{ fontWeight: 700, color: '#fff' }}>
-                        <span style={{ marginRight: 6 }}>{l.icon}</span>
                         {l.subject}
                       </td>
                       <td style={{ textAlign: 'center', fontWeight: 600 }}>{l.credits}</td>
@@ -389,7 +385,7 @@ export default function SchedulePage() {
                       </td>
                       <td style={{ textAlign: 'center', fontWeight: 700 }}>{l.periodCount}</td>
                       <td className={styles.teacherCell}>
-                        👨‍🏫 {l.teacher}
+                        GV: {l.teacher}
                       </td>
                     </tr>
                   );

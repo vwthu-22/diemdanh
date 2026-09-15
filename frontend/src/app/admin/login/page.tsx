@@ -28,7 +28,6 @@ export default function AdminLoginPage() {
   return (
     <div className={styles.page}>
       <div className={`card ${styles.loginCard} fade-in`}>
-        <div className={styles.icon}>🔐</div>
         <h1 className={styles.title}>Đăng nhập Giáo viên</h1>
         <p className={styles.subtitle}>Hệ thống Điểm danh CQP 22</p>
 
@@ -63,7 +62,7 @@ export default function AdminLoginPage() {
           </button>
         </form>
 
-        <a href="/" className={styles.backLink}>← Về trang điểm danh sinh viên</a>
+        <a href="/" className={styles.backLink}>Về trang điểm danh sinh viên</a>
       </div>
     </div>
   );

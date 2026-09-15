@@ -644,7 +644,7 @@ export default function ExportPage() {
   return (
     <div className={styles.page}>
       <div className={styles.pageHeader}>
-        <h1 className={styles.pageTitle}>📥 Xuất báo cáo Excel</h1>
+        <h1 className={styles.pageTitle}>Xuất báo cáo Excel</h1>
         <p className={styles.pageSubtitle}>Tải file Excel điểm danh theo ngày, tuần hoặc cả tháng</p>
       </div>
 
@@ -654,21 +654,21 @@ export default function ExportPage() {
           onClick={() => setMode('daily')}
           id="export-tab-daily"
         >
-          📅 Theo ngày
+          Theo ngày
         </button>
         <button
           className={`${styles.tab} ${mode === 'weekly' ? styles.tabActive : ''}`}
           onClick={() => setMode('weekly')}
           id="export-tab-weekly"
         >
-          📆 Theo tuần
+          Theo tuần
         </button>
         <button
           className={`${styles.tab} ${mode === 'monthly' ? styles.tabActive : ''}`}
           onClick={() => setMode('monthly')}
           id="export-tab-monthly"
         >
-          🗓️ Theo tháng
+          Theo tháng
         </button>
       </div>
 
@@ -685,7 +685,7 @@ export default function ExportPage() {
               <input type="date" className="input" value={date} onChange={(e) => setDate(e.target.value)} id="export-daily-date" />
             </div>
             <button className={`btn btn-success btn-lg ${styles.exportBtn}`} onClick={exportDaily} disabled={loading} id="export-daily-btn">
-              {loading ? <><div className="spinner" /> Đang tạo...</> : '⬇️ Xuất Excel (.xlsx)'}
+              {loading ? <><div className="spinner" /> Đang tạo...</> : 'Xuất Excel (.xlsx)'}
             </button>
           </div>
           <DailyPreview date={date} />
@@ -709,7 +709,7 @@ export default function ExportPage() {
               <input type="date" className="input" value={weekTo} onChange={(e) => setWeekTo(e.target.value)} id="export-weekly-to" />
             </div>
             <button className={`btn btn-success btn-lg ${styles.exportBtn}`} onClick={exportWeekly} disabled={loading} id="export-weekly-btn">
-              {loading ? <><div className="spinner" /> Đang tạo...</> : '⬇️ Xuất Excel (.xlsx)'}
+              {loading ? <><div className="spinner" /> Đang tạo...</> : 'Xuất Excel (.xlsx)'}
             </button>
           </div>
           <WeeklyPreview from={weekFrom} to={weekTo} />
@@ -740,7 +740,7 @@ export default function ExportPage() {
               disabled={loading}
               id="export-monthly-btn"
             >
-              {loading ? <><div className="spinner" /> Đang tạo...</> : '⬇️ Xuất Excel (.xlsx)'}
+              {loading ? <><div className="spinner" /> Đang tạo...</> : 'Xuất Excel (.xlsx)'}
             </button>
           </div>
           <MonthlyPreview month={month} />
@@ -750,7 +750,7 @@ export default function ExportPage() {
       {error && <div className={styles.error}>{error}</div>}
 
       <div className={`card ${styles.infoCard}`}>
-        <h3>📋 Ký hiệu trong file Excel (Báo cáo tuần)</h3>
+        <h3>Ký hiệu trong file Excel (Báo cáo tuần)</h3>
         <div className={styles.legendGrid}>
           <div className={styles.legendItem}>
             <span style={{ color: 'var(--color-present)', fontWeight: 700 }}>✓</span>

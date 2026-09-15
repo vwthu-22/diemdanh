@@ -11,13 +11,6 @@ const STATUS_LABELS: Record<string, string> = {
   excused: 'Vắng có phép',
 };
 
-const STATUS_ICONS: Record<string, string> = {
-  present: '✓',
-  late: '⏰',
-  absent: '✕',
-  excused: '📋',
-};
-
 const ALL_STATUSES: AttendanceStatus[] = ['present', 'late', 'absent', 'excused'];
 
 const QUICK_REASONS = [
@@ -304,9 +297,7 @@ export default function DashboardPage() {
       {/* Header */}
       <div className={styles.pageHeader}>
         <div className={styles.titleArea}>
-          <h1 className={styles.pageTitle}>
-            <span>📊</span> Dashboard Điểm danh
-          </h1>
+          <h1 className={styles.pageTitle}>Dashboard Điểm danh</h1>
           <p className={styles.pageSubtitle}>
             Lớp CQP 22 — Trường Cao đẳng Truyền hình • Ngày {formattedDate}
           </p>
@@ -320,7 +311,7 @@ export default function DashboardPage() {
             onClick={() => changeDay(-1)}
             title="Lùi 1 ngày"
           >
-            ◀
+            Trước
           </button>
           <input
             type="date"
@@ -335,7 +326,7 @@ export default function DashboardPage() {
             onClick={() => changeDay(1)}
             title="Tiến 1 ngày"
           >
-            ▶
+            Sau
           </button>
           <button
             type="button"
@@ -350,7 +341,7 @@ export default function DashboardPage() {
             onClick={() => fetchData(true)}
             title="Làm mới dữ liệu"
           >
-            🔄
+            {refreshing ? 'Đang tải...' : 'Làm mới'}
           </button>
         </div>
       </div>
@@ -364,7 +355,6 @@ export default function DashboardPage() {
           title="Bấm để xem tất cả sinh viên"
         >
           <div className={styles.statHeader}>
-            <div className={styles.statIcon}>👥</div>
             <div className={styles.statPercent}>100%</div>
           </div>
           <div className={styles.statNum}>{totalStudents}</div>
@@ -381,7 +371,6 @@ export default function DashboardPage() {
           title="Bấm để lọc sinh viên có mặt"
         >
           <div className={styles.statHeader}>
-            <div className={styles.statIcon}>✅</div>
             <div className={styles.statPercent}>{presentPct}%</div>
           </div>
           <div className={styles.statNum}>{presentCount}</div>
@@ -398,11 +387,10 @@ export default function DashboardPage() {
           title="Bấm để lọc sinh viên đi muộn"
         >
           <div className={styles.statHeader}>
-            <div className={styles.statIcon}>⚠️</div>
             <div className={styles.statPercent}>{latePct}%</div>
           </div>
           <div className={styles.statNum}>{lateCount}</div>
-          <div className={styles.statLabel}>Đi muộn / 1 ca</div>
+          <div className={styles.statLabel}>Đi muộn</div>
           <div className={styles.statProgressTrack}>
             <div className={styles.statProgressBar} style={{ width: `${latePct}%` }} />
           </div>
@@ -415,7 +403,6 @@ export default function DashboardPage() {
           title="Bấm để lọc sinh viên vắng có phép"
         >
           <div className={styles.statHeader}>
-            <div className={styles.statIcon}>📋</div>
             <div className={styles.statPercent}>{excusedPct}%</div>
           </div>
           <div className={styles.statNum}>{excusedCount}</div>
@@ -432,7 +419,6 @@ export default function DashboardPage() {
           title="Bấm để lọc sinh viên vắng không phép"
         >
           <div className={styles.statHeader}>
-            <div className={styles.statIcon}>❌</div>
             <div className={styles.statPercent}>{absentPct}%</div>
           </div>
           <div className={styles.statNum}>{absentCount}</div>
@@ -486,7 +472,6 @@ export default function DashboardPage() {
           </div>
 
           <div className={styles.searchWrap}>
-            <span className={styles.searchIcon}>🔍</span>
             <input
               type="text"
               className={styles.searchInput}
@@ -504,9 +489,9 @@ export default function DashboardPage() {
               onChange={(e) => setBulkSession(e.target.value as AttendanceSession | 'both')}
               title="Chọn buổi muốn điểm danh hàng loạt"
             >
-              <option value="morning">🌅 Sáng</option>
-              <option value="afternoon">☀️ Chiều</option>
-              <option value="both">📋 Cả 2 buổi</option>
+              <option value="morning">Sáng</option>
+              <option value="afternoon">Chiều</option>
+              <option value="both">Cả 2 buổi</option>
             </select>
             <button
               type="button"
@@ -519,7 +504,7 @@ export default function DashboardPage() {
               {bulkLoading ? (
                 <><div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} /> Đang xử lý...</>
               ) : (
-                <>✅ Điểm danh tất cả</>
+                'Điểm danh tất cả'
               )}
             </button>
           </div>
@@ -544,13 +529,13 @@ export default function DashboardPage() {
                   <th className={styles.colName}>Họ và Tên</th>
                   <th className={`${styles.colDob} ${styles.sectionDividerRight}`}>Ngày sinh</th>
                   <th className={`${styles.colSession} ${styles.dayDivider}`}>
-                    🌅 Sáng
+                    Sáng
                     <div style={{ fontSize: '0.72rem', fontWeight: 500, color: 'var(--color-text-muted)', marginTop: 2 }}>
                       {settings ? `${settings.morningStart} - ${settings.morningLateEnd}` : '07:30 - 08:15'}
                     </div>
                   </th>
                   <th className={`${styles.colSession} ${styles.sectionDividerRight}`}>
-                    ☀️ Chiều
+                    Chiều
                     <div style={{ fontSize: '0.72rem', fontWeight: 500, color: 'var(--color-text-muted)', marginTop: 2 }}>
                       {settings ? `${settings.afternoonStart} - ${settings.afternoonLateEnd}` : '13:00 - 13:45'}
                     </div>
@@ -581,8 +566,8 @@ export default function DashboardPage() {
                             <div className={styles.studentName}>{student.name}</div>
                             {student.deviceId ? (
                               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                                <span style={{ fontSize: '0.72rem', color: 'var(--color-present)', fontWeight: 600 }} title={`Mã thiết bị: ${student.deviceId}`}>
-                                  📱 Đã khóa máy
+                                <span style={{ fontSize: '0.72rem', color: 'var(--color-present)', fontWeight: 600 }}>
+                                  Đã khóa máy
                                 </span>
                                 <button
                                   type="button"
@@ -598,12 +583,12 @@ export default function DashboardPage() {
                                   title="Nhấn để mở khóa nếu sinh viên đổi điện thoại mới"
                                   onClick={() => handleResetDevice(student.id, student.name)}
                                 >
-                                  🔄 Reset máy
+                                  Reset máy
                                 </button>
                               </div>
                             ) : (
                               <div style={{ fontSize: '0.72rem', color: 'var(--color-text-muted)', marginTop: 2 }}>
-                                ⚪ Chưa liên kết máy
+                                Chưa liên kết máy
                               </div>
                             )}
                           </div>
@@ -627,17 +612,17 @@ export default function DashboardPage() {
                                 border: `1px solid var(--color-${morning.status}-border)`,
                               }}
                             >
-                              {STATUS_ICONS[morning.status]} {STATUS_LABELS[morning.status]}
+                              {STATUS_LABELS[morning.status]}
                             </span>
                             {morning.checkInTime && (
                               <span className={styles.timePill}>
-                                ⏱️ {morning.checkInTime.substring(0, 5)}
+                                {morning.checkInTime.substring(0, 5)}
                               </span>
                             )}
                             {morning.note ? (
                               <span
                                 className={styles.notePill}
-                                title={`Lý do: ${morning.note} (Bấm để sửa)`}
+                                title={`Lý do: ${morning.note}`}
                                 onClick={() => {
                                   setExcuseModal({ studentId: student.id, name: student.name, dob: student.dob });
                                   setExcuseSession('morning');
@@ -645,7 +630,7 @@ export default function DashboardPage() {
                                   setExcuseNote(morning.note || '');
                                 }}
                               >
-                                💬 {morning.note}
+                                {morning.note}
                               </span>
                             ) : morning.status === 'excused' ? (
                               <button
@@ -658,7 +643,7 @@ export default function DashboardPage() {
                                   setExcuseNote('');
                                 }}
                               >
-                                + Thêm lý do phép
+                                Thêm lý do
                               </button>
                             ) : null}
                             <div className={styles.quickActionRow}>
@@ -676,7 +661,7 @@ export default function DashboardPage() {
                                 {ALL_STATUSES.map((s) => (
                                   <option key={s} value={s}>{STATUS_LABELS[s]}</option>
                                 ))}
-                                <option value="delete" style={{ color: 'var(--color-absent)' }}>🗑️ Xóa</option>
+                                <option value="delete" style={{ color: 'var(--color-absent)' }}>Xóa</option>
                               </select>
                               <button
                                 type="button"
@@ -689,7 +674,7 @@ export default function DashboardPage() {
                                   setExcuseNote(morning.note || '');
                                 }}
                               >
-                                ✏️
+                                Sửa
                               </button>
                               <button
                                 type="button"
@@ -697,7 +682,7 @@ export default function DashboardPage() {
                                 title="Xóa lượt này"
                                 onClick={() => deleteRecord(morning.id)}
                               >
-                                ✕
+                                Xóa
                               </button>
                             </div>
                           </div>
@@ -715,7 +700,7 @@ export default function DashboardPage() {
                                 border: '1px solid var(--color-absent-border)',
                               }}
                             >
-                              ✕ Vắng không phép
+                              Vắng không phép
                             </span>
                             <div className={styles.quickActionRow}>
                               <select
@@ -742,7 +727,7 @@ export default function DashboardPage() {
                                   setExcuseNote('');
                                 }}
                               >
-                                ✏️
+                                Phép
                               </button>
                             </div>
                           </div>
@@ -757,7 +742,7 @@ export default function DashboardPage() {
                               setExcuseNote('');
                             }}
                           >
-                            + Điểm danh / Phép
+                            Điểm danh / Phép
                           </button>
                         )}
                       </td>
@@ -774,17 +759,17 @@ export default function DashboardPage() {
                                 border: `1px solid var(--color-${afternoon.status}-border)`,
                               }}
                             >
-                              {STATUS_ICONS[afternoon.status]} {STATUS_LABELS[afternoon.status]}
+                              {STATUS_LABELS[afternoon.status]}
                             </span>
                             {afternoon.checkInTime && (
                               <span className={styles.timePill}>
-                                ⏱️ {afternoon.checkInTime.substring(0, 5)}
+                                {afternoon.checkInTime.substring(0, 5)}
                               </span>
                             )}
                             {afternoon.note ? (
                               <span
                                 className={styles.notePill}
-                                title={`Lý do: ${afternoon.note} (Bấm để sửa)`}
+                                title={`Lý do: ${afternoon.note}`}
                                 onClick={() => {
                                   setExcuseModal({ studentId: student.id, name: student.name, dob: student.dob });
                                   setExcuseSession('afternoon');
@@ -792,7 +777,7 @@ export default function DashboardPage() {
                                   setExcuseNote(afternoon.note || '');
                                 }}
                               >
-                                💬 {afternoon.note}
+                                {afternoon.note}
                               </span>
                             ) : afternoon.status === 'excused' ? (
                               <button
@@ -805,7 +790,7 @@ export default function DashboardPage() {
                                   setExcuseNote('');
                                 }}
                               >
-                                + Thêm lý do phép
+                                Thêm lý do
                               </button>
                             ) : null}
                             <div className={styles.quickActionRow}>
@@ -823,7 +808,7 @@ export default function DashboardPage() {
                                 {ALL_STATUSES.map((s) => (
                                   <option key={s} value={s}>{STATUS_LABELS[s]}</option>
                                 ))}
-                                <option value="delete" style={{ color: 'var(--color-absent)' }}>🗑️ Xóa</option>
+                                <option value="delete" style={{ color: 'var(--color-absent)' }}>Xóa</option>
                               </select>
                               <button
                                 type="button"
@@ -836,7 +821,7 @@ export default function DashboardPage() {
                                   setExcuseNote(afternoon.note || '');
                                 }}
                               >
-                                ✏️
+                                Sửa
                               </button>
                               <button
                                 type="button"
@@ -844,7 +829,7 @@ export default function DashboardPage() {
                                 title="Xóa lượt này"
                                 onClick={() => deleteRecord(afternoon.id)}
                               >
-                                ✕
+                                Xóa
                               </button>
                             </div>
                           </div>
@@ -862,7 +847,7 @@ export default function DashboardPage() {
                                 border: '1px solid var(--color-absent-border)',
                               }}
                             >
-                              ✕ Vắng không phép
+                              Vắng không phép
                             </span>
                             <div className={styles.quickActionRow}>
                               <select
@@ -889,7 +874,7 @@ export default function DashboardPage() {
                                   setExcuseNote('');
                                 }}
                               >
-                                ✏️
+                                Phép
                               </button>
                             </div>
                           </div>
@@ -904,7 +889,7 @@ export default function DashboardPage() {
                               setExcuseNote('');
                             }}
                           >
-                            + Điểm danh / Phép
+                            Điểm danh / Phép
                           </button>
                         )}
                       </td>
@@ -932,7 +917,7 @@ export default function DashboardPage() {
                             setExcuseModal({ studentId: student.id, name: student.name, dob: student.dob });
                           }}
                         >
-                          📋 Phép
+                          Phép
                         </button>
                       </td>
                     </tr>
@@ -950,14 +935,14 @@ export default function DashboardPage() {
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <div>
-                <h3 className={styles.modalTitle}>📋 Cập nhật điểm danh</h3>
+                <h3 className={styles.modalTitle}>Cập nhật điểm danh</h3>
               </div>
               <button
                 type="button"
                 className={styles.modalCloseBtn}
                 onClick={() => setExcuseModal(null)}
               >
-                ✕
+                Đóng
               </button>
             </div>
 
@@ -986,14 +971,14 @@ export default function DashboardPage() {
                 className={`${styles.sessionSegmentBtn} ${excuseSession === 'morning' ? styles.sessionSegmentBtnActive : ''}`}
                 onClick={() => setExcuseSession('morning')}
               >
-                🌅 Buổi Sáng
+                Buổi Sáng
               </button>
               <button
                 type="button"
                 className={`${styles.sessionSegmentBtn} ${excuseSession === 'afternoon' ? styles.sessionSegmentBtnActive : ''}`}
                 onClick={() => setExcuseSession('afternoon')}
               >
-                ☀️ Buổi Chiều
+                Buổi Chiều
               </button>
             </div>
 
@@ -1006,31 +991,31 @@ export default function DashboardPage() {
                 className={`${styles.statusOption} ${excuseStatus === 'present' ? styles.statusOptionActive : ''}`}
                 onClick={() => setExcuseStatus('present')}
               >
-                <span style={{ color: 'var(--color-present)' }}>✓</span> Có mặt
+                Có mặt
               </div>
               <div
                 className={`${styles.statusOption} ${excuseStatus === 'late' ? styles.statusOptionActive : ''}`}
                 onClick={() => setExcuseStatus('late')}
               >
-                <span style={{ color: 'var(--color-late)' }}>⏰</span> Đi muộn
+                Đi muộn
               </div>
               <div
                 className={`${styles.statusOption} ${excuseStatus === 'absent' ? styles.statusOptionActive : ''}`}
                 onClick={() => setExcuseStatus('absent')}
               >
-                <span style={{ color: 'var(--color-absent)' }}>✕</span> Vắng mặt
+                Vắng mặt
               </div>
               <div
                 className={`${styles.statusOption} ${excuseStatus === 'excused' ? styles.statusOptionActive : ''}`}
                 onClick={() => setExcuseStatus('excused')}
               >
-                <span style={{ color: 'var(--color-excused)' }}>📋</span> Có phép
+                Có phép
               </div>
               <div
                 className={`${styles.statusOption} ${styles.statusOptionDelete} ${excuseStatus === 'delete' ? styles.statusOptionDeleteActive : ''}`}
                 onClick={() => setExcuseStatus('delete')}
               >
-                <span>🗑️</span> Xóa bản ghi (Không có lượt điểm danh)
+                Xóa bản ghi (Không có lượt điểm danh)
               </div>
             </div>
 
@@ -1080,7 +1065,7 @@ export default function DashboardPage() {
                 onClick={submitExcuse}
                 id="excuse-confirm"
               >
-                ✓ Lưu xác nhận
+                Lưu xác nhận
               </button>
             </div>
           </div>

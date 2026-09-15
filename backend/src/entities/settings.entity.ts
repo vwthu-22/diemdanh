@@ -5,13 +5,13 @@ export class Settings {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ name: 'school_lat', type: 'real', default: 20.868382 })
+  @Column({ name: 'school_lat', type: 'double precision', default: 20.868382 })
   schoolLat: number;
 
-  @Column({ name: 'school_lng', type: 'real', default: 105.857279 })
+  @Column({ name: 'school_lng', type: 'double precision', default: 105.857279 })
   schoolLng: number;
 
-  @Column({ name: 'radius_meters', default: 50000 })
+  @Column({ name: 'radius_meters', default: 100 })
   radiusMeters: number;
 
   // Morning session
@@ -38,8 +38,8 @@ export class Settings {
   @Column({ name: 'schedule', type: 'simple-json', nullable: true })
   schedule: Record<string, string[]>;
 
-  // Ngày bắt đầu tính điểm danh (mặc định hôm nay 2026-09-14)
-  @Column({ name: 'start_date', nullable: true, default: '2026-09-14' })
+  // Ngày bắt đầu tính điểm danh (mặc định 2026-09-15)
+  @Column({ name: 'start_date', nullable: true, default: '2026-09-15' })
   startDate: string;
 }
 
