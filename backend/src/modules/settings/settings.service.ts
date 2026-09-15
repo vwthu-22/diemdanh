@@ -1,14 +1,48 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Settings, DEFAULT_SCHEDULE } from '../../entities/settings.entity';
 
 @Injectable()
-export class SettingsService {
+export class SettingsService implements OnModuleInit {
   constructor(
     @InjectRepository(Settings)
     private settingsRepo: Repository<Settings>,
   ) {}
+
+  async onModuleInit() {
+    // Tự động kiểm tra và nâng cấp bảng settings nếu thiếu cột start_date hoặc schedule trên Neon Postgres / SQLite
+    try {
+      await this.settingsRepo.query(`
+        DO $$
+        BEGIN
+          BEGIN
+            ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "schedule" text;
+          EXCEPTION WHEN OTHERS THEN NULL;
+          END;
+          BEGIN
+            ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "start_date" varchar(255) DEFAULT '2026-09-15';
+          EXCEPTION WHEN OTHERS THEN NULL;
+          END;
+          BEGIN
+            ALTER TABLE "settings" ALTER COLUMN "school_lat" TYPE double precision;
+          EXCEPTION WHEN OTHERS THEN NULL;
+          END;
+          BEGIN
+            ALTER TABLE "settings" ALTER COLUMN "school_lng" TYPE double precision;
+          EXCEPTION WHEN OTHERS THEN NULL;
+          END;
+        END $$;
+      `);
+      console.log('Database settings schema verified and updated successfully.');
+    } catch {
+      // Fallback cho SQLite nếu đang chạy local
+      try {
+        await this.settingsRepo.query(`ALTER TABLE settings ADD COLUMN schedule text`).catch(() => {});
+        await this.settingsRepo.query(`ALTER TABLE settings ADD COLUMN start_date varchar DEFAULT '2026-09-15'`).catch(() => {});
+      } catch {}
+    }
+  }
 
   async getSettings(): Promise<Settings> {
     try {
@@ -119,7 +153,41 @@ export class SettingsService {
       }
       return saved;
     } catch (err) {
-      console.error('Error in updateSettings, applying fallback:', err);
+      console.error('Error in updateSettings:', err);
+      // Cố gắng dùng raw query UPDATE trực tiếp vào database nếu TypeORM entity save bị lỗi schema
+      try {
+        const schoolLat = dto.schoolLat !== undefined ? Number(dto.schoolLat) : 20.868382;
+        const schoolLng = dto.schoolLng !== undefined ? Number(dto.schoolLng) : 105.857279;
+        const radiusMeters = dto.radiusMeters !== undefined ? Math.max(0, Math.min(200, Number(dto.radiusMeters))) : 100;
+        const morningStart = dto.morningStart || '07:30';
+        const morningOnTimeEnd = dto.morningOnTimeEnd || '07:45';
+        const morningLateEnd = dto.morningLateEnd || '08:15';
+        const afternoonStart = dto.afternoonStart || '13:00';
+        const afternoonOnTimeEnd = dto.afternoonOnTimeEnd || '13:15';
+        const afternoonLateEnd = dto.afternoonLateEnd || '13:45';
+        const startDate = dto.startDate || '2026-09-15';
+        const schedJson = typeof dto.schedule === 'object' ? JSON.stringify(dto.schedule) : (dto.schedule || JSON.stringify(DEFAULT_SCHEDULE));
+
+        await this.settingsRepo.query(
+          `UPDATE "settings" SET
+            "school_lat" = $1,
+            "school_lng" = $2,
+            "radius_meters" = $3,
+            "morning_start" = $4,
+            "morning_on_time_end" = $5,
+            "morning_late_end" = $6,
+            "afternoon_start" = $7,
+            "afternoon_on_time_end" = $8,
+            "afternoon_late_end" = $9,
+            "start_date" = $10,
+            "schedule" = $11
+          WHERE "id" = 1`,
+          [schoolLat, schoolLng, radiusMeters, morningStart, morningOnTimeEnd, morningLateEnd, afternoonStart, afternoonOnTimeEnd, afternoonLateEnd, startDate, schedJson]
+        );
+      } catch (rawErr) {
+        console.error('Raw query update failed:', rawErr);
+      }
+
       return {
         id: 1,
         schoolLat: dto.schoolLat !== undefined ? Number(dto.schoolLat) : 20.868382,

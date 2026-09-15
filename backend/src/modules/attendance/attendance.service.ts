@@ -421,6 +421,49 @@ export class AttendanceService {
   }
 
   /**
+   * Điểm danh hàng loạt cho tất cả sinh viên (xử lý server-side chỉ 1 request)
+   */
+  async markBulkAttendance(
+    date: string,
+    session: AttendanceSession | 'both',
+    status: AttendanceStatus = AttendanceStatus.PRESENT,
+  ) {
+    const students = await this.studentRepo.find({ order: { orderNum: 'ASC' } });
+    const sessions: AttendanceSession[] =
+      session === 'both'
+        ? [AttendanceSession.MORNING, AttendanceSession.AFTERNOON]
+        : [session];
+
+    const now = getVietnamNow();
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+
+    for (const sess of sessions) {
+      for (const st of students) {
+        let rec = await this.attendanceRepo.findOneBy({ studentId: st.id, date, session: sess });
+        if (!rec) {
+          rec = this.attendanceRepo.create({
+            studentId: st.id,
+            deviceId: `admin-${st.id}`,
+            date,
+            session: sess,
+            status,
+            checkInTime: timeStr,
+          });
+        } else {
+          rec.status = status;
+          if (!rec.checkInTime) rec.checkInTime = timeStr;
+        }
+        await this.attendanceRepo.save(rec);
+      }
+    }
+    return {
+      success: true,
+      count: students.length * sessions.length,
+      message: `Đã điểm danh cho ${students.length} sinh viên!`,
+    };
+  }
+
+  /**
    * Xóa toàn bộ dữ liệu điểm danh (dành cho dọn rác test)
    */
   async clearAllAttendance() {

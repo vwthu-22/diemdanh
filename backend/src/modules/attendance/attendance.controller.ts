@@ -89,6 +89,23 @@ export class AttendanceController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Post('admin/attendance/bulk')
+  markBulkAttendance(
+    @Body()
+    body: {
+      date: string;
+      session: AttendanceSession | 'both';
+      status?: AttendanceStatus;
+    },
+  ) {
+    return this.attendanceService.markBulkAttendance(
+      body.date,
+      body.session,
+      body.status,
+    );
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Delete('admin/attendance/clear-all')
   clearAllAttendance() {
     return this.attendanceService.clearAllAttendance();

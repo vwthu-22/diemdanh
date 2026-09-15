@@ -152,9 +152,6 @@ function DailyPreview({ date }: { date: string }) {
       return { label: '–', color: 'var(--color-text-muted)' };
     }
     if (statuses.some((s) => s === 'late')) return { label: 'Muộn', color: 'var(--color-late)' };
-    if (statuses.every((s) => s === 'present')) return { label: 'Có mặt', color: 'var(--color-present)' };
-    if (statuses.every((s) => s === 'excused')) return { label: 'Có phép', color: 'var(--color-excused)' };
-    if (statuses.some((s) => s === 'absent')) return { label: 'Vắng', color: 'var(--color-absent)' };
     if (statuses.some((s) => s === 'present')) return { label: 'Có mặt', color: 'var(--color-present)' };
     if (statuses.some((s) => s === 'excused')) return { label: 'Có phép', color: 'var(--color-excused)' };
     return { label: 'Vắng', color: 'var(--color-absent)' };

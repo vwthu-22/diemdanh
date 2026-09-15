@@ -127,39 +127,29 @@ export default function DashboardPage() {
   };
 
   const markAllPresent = async () => {
-    const sessions: AttendanceSession[] = bulkSession === 'both' ? ['morning', 'afternoon'] : [bulkSession];
-    const missing: { studentId: number; session: AttendanceSession }[] = [];
+    const sessionLabel =
+      bulkSession === 'both'
+        ? 'cả 2 buổi'
+        : bulkSession === 'morning'
+        ? 'buổi sáng'
+        : 'buổi chiều';
 
-    for (const row of rows) {
-      for (const sess of sessions) {
-        const existing = sess === 'morning' ? row.morning : row.afternoon;
-        if (!existing) {
-          missing.push({ studentId: row.student.id, session: sess });
-        }
-      }
-    }
-
-    if (missing.length === 0) {
-      alert('Tất cả sinh viên đã có điểm danh rồi!');
-      return;
-    }
-
-    const sessionLabel = bulkSession === 'both' ? 'cả 2 buổi' : (bulkSession === 'morning' ? 'buổi sáng' : 'buổi chiều');
     const confirmed = window.confirm(
-      `Điểm danh "Có mặt" cho ${missing.length} lượt còn thiếu (${sessionLabel})?\n\nHành động này sẽ thêm ${missing.length} bản ghi điểm danh.`
+      `Điểm danh "Có mặt" cho toàn bộ sinh viên (${sessionLabel})?\n\nThao tác này sẽ cập nhật tất cả sinh viên chưa có mặt thành "Có mặt".`,
     );
     if (!confirmed) return;
 
     setBulkLoading(true);
     try {
-      await Promise.all(
-        missing.map(({ studentId, session }) =>
-          api.post('/admin/excuse', { studentId, date, session, note: '', status: 'present' })
-        )
-      );
+      const res = await api.post('/admin/attendance/bulk', {
+        date,
+        session: bulkSession,
+        status: 'present',
+      });
       fetchData(true);
-    } catch {
-      alert('Có lỗi xảy ra khi điểm danh hàng loạt!');
+      alert(res.data?.message || 'Đã điểm danh có mặt cho toàn bộ sinh viên thành công!');
+    } catch (err: any) {
+      alert(err?.response?.data?.message || 'Có lỗi xảy ra khi điểm danh hàng loạt!');
     } finally {
       setBulkLoading(false);
     }
@@ -189,6 +179,8 @@ export default function DashboardPage() {
       fetchData(true);
     } catch {}
   };
+
+  const [viewSession, setViewSession] = useState<'all' | 'morning' | 'afternoon'>('all');
 
   const isSessionClosed = useCallback((session: 'morning' | 'afternoon') => {
     const now = new Date();
@@ -228,7 +220,7 @@ export default function DashboardPage() {
     return null; // Đang mở cổng hoặc chưa tới giờ
   }, [isSessionScheduled, isSessionClosed]);
 
-  // Compute Daily summary for a row (consistent with export and user requirement)
+  // Compute Daily summary for a row
   const getRowSummary = useCallback((row: DailyAttendanceRow): AttendanceStatus => {
     const morningStatus = getEffectiveSessionStatus(row.morning, 'morning');
     const afternoonStatus = getEffectiveSessionStatus(row.afternoon, 'afternoon');
@@ -236,28 +228,87 @@ export default function DashboardPage() {
     const statuses = [morningStatus, afternoonStatus].filter(Boolean) as AttendanceStatus[];
     if (statuses.length === 0) return 'absent';
 
-    // Priority:
-    // 1. If any session attended is late -> late (Đi muộn)
+    // If viewing specific session
+    if (viewSession === 'morning') return morningStatus || 'absent';
+    if (viewSession === 'afternoon') return afternoonStatus || 'absent';
+
+    // When viewing whole day: chỉ cần có mặt ít nhất 1 buổi trong ngày là tính Có mặt / Muộn
     if (statuses.some((s) => s === 'late')) return 'late';
-    // 2. If any session attended is present -> present (Có mặt)
     if (statuses.some((s) => s === 'present')) return 'present';
-    // 3. If any session is excused -> excused (Vắng có phép)
     if (statuses.some((s) => s === 'excused')) return 'excused';
-    // 4. Otherwise -> absent (Vắng không phép)
     return 'absent';
-  }, [getEffectiveSessionStatus]);
+  }, [getEffectiveSessionStatus, viewSession]);
 
-  // Stats computation (derived 100% consistently from getRowSummary)
-  const totalStudents = rows.length;
-  const presentCount = rows.filter((r) => getRowSummary(r) === 'present').length;
-  const lateCount = rows.filter((r) => getRowSummary(r) === 'late').length;
-  const absentCount = rows.filter((r) => getRowSummary(r) === 'absent').length;
-  const excusedCount = rows.filter((r) => getRowSummary(r) === 'excused').length;
+  // Stats computation
+  const stats = useMemo(() => {
+    if (viewSession === 'morning' || viewSession === 'afternoon') {
+      const scheduled = isSessionScheduled(viewSession);
+      const total = scheduled ? rows.length : 0;
+      let present = 0, late = 0, absent = 0, excused = 0;
 
-  const presentPct = totalStudents > 0 ? Math.round((presentCount / totalStudents) * 100) : 0;
-  const latePct = totalStudents > 0 ? Math.round((lateCount / totalStudents) * 100) : 0;
-  const absentPct = totalStudents > 0 ? Math.round((absentCount / totalStudents) * 100) : 0;
-  const excusedPct = totalStudents > 0 ? Math.round((excusedCount / totalStudents) * 100) : 0;
+      if (scheduled) {
+        rows.forEach((r) => {
+          const st = getEffectiveSessionStatus(viewSession === 'morning' ? r.morning : r.afternoon, viewSession);
+          if (st === 'present') present++;
+          else if (st === 'late') late++;
+          else if (st === 'absent') absent++;
+          else if (st === 'excused') excused++;
+        });
+      }
+      return {
+        total,
+        present,
+        late,
+        absent,
+        excused,
+        presentPct: total > 0 ? Math.round((present / total) * 100) : 0,
+        latePct: total > 0 ? Math.round((late / total) * 100) : 0,
+        absentPct: total > 0 ? Math.round((absent / total) * 100) : 0,
+        excusedPct: total > 0 ? Math.round((excused / total) * 100) : 0,
+      };
+    }
+
+    // Whole Day: Calculate across all scheduled sessions of the day
+    let totalSlots = 0;
+    let presentSlots = 0;
+    let lateSlots = 0;
+    let absentSlots = 0;
+    let excusedSlots = 0;
+
+    const morningScheduled = isSessionScheduled('morning');
+    const afternoonScheduled = isSessionScheduled('afternoon');
+
+    rows.forEach((r) => {
+      if (morningScheduled) {
+        totalSlots++;
+        const st = getEffectiveSessionStatus(r.morning, 'morning');
+        if (st === 'present') presentSlots++;
+        else if (st === 'late') lateSlots++;
+        else if (st === 'absent') absentSlots++;
+        else if (st === 'excused') excusedSlots++;
+      }
+      if (afternoonScheduled) {
+        totalSlots++;
+        const st = getEffectiveSessionStatus(r.afternoon, 'afternoon');
+        if (st === 'present') presentSlots++;
+        else if (st === 'late') lateSlots++;
+        else if (st === 'absent') absentSlots++;
+        else if (st === 'excused') excusedSlots++;
+      }
+    });
+
+    return {
+      total: totalSlots,
+      present: presentSlots,
+      late: lateSlots,
+      absent: absentSlots,
+      excused: excusedSlots,
+      presentPct: totalSlots > 0 ? Math.round((presentSlots / totalSlots) * 100) : 0,
+      latePct: totalSlots > 0 ? Math.round((lateSlots / totalSlots) * 100) : 0,
+      absentPct: totalSlots > 0 ? Math.round((absentSlots / totalSlots) * 100) : 0,
+      excusedPct: totalSlots > 0 ? Math.round((excusedSlots / totalSlots) * 100) : 0,
+    };
+  }, [rows, viewSession, isSessionScheduled, getEffectiveSessionStatus]);
 
   // Filtered rows
   const filteredRows = useMemo(() => {
@@ -346,19 +397,77 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Session Filter Bar for Stats */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255, 255, 255, 0.05)', padding: 4, borderRadius: 10, border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+          <span style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', padding: '0 8px', fontWeight: 600 }}>Thống kê:</span>
+          <button
+            type="button"
+            style={{
+              padding: '5px 12px',
+              fontSize: '0.78rem',
+              fontWeight: 600,
+              borderRadius: 6,
+              border: 'none',
+              cursor: 'pointer',
+              background: viewSession === 'all' ? 'var(--color-primary)' : 'transparent',
+              color: viewSession === 'all' ? '#fff' : 'var(--color-text-secondary)',
+            }}
+            onClick={() => setViewSession('all')}
+          >
+            Cả ngày (tổng ca)
+          </button>
+          <button
+            type="button"
+            style={{
+              padding: '5px 12px',
+              fontSize: '0.78rem',
+              fontWeight: 600,
+              borderRadius: 6,
+              border: 'none',
+              cursor: 'pointer',
+              background: viewSession === 'morning' ? 'var(--color-primary)' : 'transparent',
+              color: viewSession === 'morning' ? '#fff' : 'var(--color-text-secondary)',
+            }}
+            onClick={() => setViewSession('morning')}
+          >
+            Ca Sáng
+          </button>
+          <button
+            type="button"
+            style={{
+              padding: '5px 12px',
+              fontSize: '0.78rem',
+              fontWeight: 600,
+              borderRadius: 6,
+              border: 'none',
+              cursor: 'pointer',
+              background: viewSession === 'afternoon' ? 'var(--color-primary)' : 'transparent',
+              color: viewSession === 'afternoon' ? '#fff' : 'var(--color-text-secondary)',
+            }}
+            onClick={() => setViewSession('afternoon')}
+          >
+            Ca Chiều
+          </button>
+        </div>
+        <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>
+          {viewSession === 'all' ? `Tổng cộng ${stats.total} lượt ca học trong ngày` : viewSession === 'morning' ? 'Thống kê riêng ca Sáng' : 'Thống kê riêng ca Chiều'}
+        </span>
+      </div>
+
       {/* KPI Stats Cards */}
       <div className={styles.statsGrid}>
         {/* Total */}
         <div
           className={`${styles.statCard} ${styles.statTotal} ${activeFilter === 'all' ? styles.statCardActive : ''}`}
           onClick={() => setActiveFilter('all')}
-          title="Bấm để xem tất cả sinh viên"
+          title="Bấm để xem tất cả"
         >
           <div className={styles.statHeader}>
             <div className={styles.statPercent}>100%</div>
           </div>
-          <div className={styles.statNum}>{totalStudents}</div>
-          <div className={styles.statLabel}>Tổng sĩ số lớp</div>
+          <div className={styles.statNum}>{stats.total}</div>
+          <div className={styles.statLabel}>{viewSession === 'all' ? 'Tổng lượt ca học' : 'Sĩ số ca'}</div>
           <div className={styles.statProgressTrack}>
             <div className={styles.statProgressBar} style={{ width: '100%' }} />
           </div>
@@ -371,12 +480,12 @@ export default function DashboardPage() {
           title="Bấm để lọc sinh viên có mặt"
         >
           <div className={styles.statHeader}>
-            <div className={styles.statPercent}>{presentPct}%</div>
+            <div className={styles.statPercent}>{stats.presentPct}%</div>
           </div>
-          <div className={styles.statNum}>{presentCount}</div>
+          <div className={styles.statNum}>{stats.present}</div>
           <div className={styles.statLabel}>Có mặt</div>
           <div className={styles.statProgressTrack}>
-            <div className={styles.statProgressBar} style={{ width: `${presentPct}%` }} />
+            <div className={styles.statProgressBar} style={{ width: `${stats.presentPct}%` }} />
           </div>
         </div>
 
@@ -387,12 +496,12 @@ export default function DashboardPage() {
           title="Bấm để lọc sinh viên đi muộn"
         >
           <div className={styles.statHeader}>
-            <div className={styles.statPercent}>{latePct}%</div>
+            <div className={styles.statPercent}>{stats.latePct}%</div>
           </div>
-          <div className={styles.statNum}>{lateCount}</div>
+          <div className={styles.statNum}>{stats.late}</div>
           <div className={styles.statLabel}>Đi muộn</div>
           <div className={styles.statProgressTrack}>
-            <div className={styles.statProgressBar} style={{ width: `${latePct}%` }} />
+            <div className={styles.statProgressBar} style={{ width: `${stats.latePct}%` }} />
           </div>
         </div>
 
@@ -403,12 +512,12 @@ export default function DashboardPage() {
           title="Bấm để lọc sinh viên vắng có phép"
         >
           <div className={styles.statHeader}>
-            <div className={styles.statPercent}>{excusedPct}%</div>
+            <div className={styles.statPercent}>{stats.excusedPct}%</div>
           </div>
-          <div className={styles.statNum}>{excusedCount}</div>
+          <div className={styles.statNum}>{stats.excused}</div>
           <div className={styles.statLabel}>Vắng có phép</div>
           <div className={styles.statProgressTrack}>
-            <div className={styles.statProgressBar} style={{ width: `${excusedPct}%` }} />
+            <div className={styles.statProgressBar} style={{ width: `${stats.excusedPct}%` }} />
           </div>
         </div>
 
@@ -419,12 +528,12 @@ export default function DashboardPage() {
           title="Bấm để lọc sinh viên vắng không phép"
         >
           <div className={styles.statHeader}>
-            <div className={styles.statPercent}>{absentPct}%</div>
+            <div className={styles.statPercent}>{stats.absentPct}%</div>
           </div>
-          <div className={styles.statNum}>{absentCount}</div>
+          <div className={styles.statNum}>{stats.absent}</div>
           <div className={styles.statLabel}>Vắng không phép</div>
           <div className={styles.statProgressTrack}>
-            <div className={styles.statProgressBar} style={{ width: `${absentPct}%` }} />
+            <div className={styles.statProgressBar} style={{ width: `${stats.absentPct}%` }} />
           </div>
         </div>
       </div>
@@ -446,28 +555,28 @@ export default function DashboardPage() {
               className={`${styles.filterChip} ${activeFilter === 'present' ? styles.filterChipActive : ''}`}
               onClick={() => setActiveFilter('present')}
             >
-              Có mặt ({presentCount})
+              Có mặt ({stats.present})
             </button>
             <button
               type="button"
               className={`${styles.filterChip} ${activeFilter === 'late' ? styles.filterChipActive : ''}`}
               onClick={() => setActiveFilter('late')}
             >
-              Đi muộn ({lateCount})
+              Đi muộn ({stats.late})
             </button>
             <button
               type="button"
               className={`${styles.filterChip} ${activeFilter === 'excused' ? styles.filterChipActive : ''}`}
               onClick={() => setActiveFilter('excused')}
             >
-              Vắng có phép ({excusedCount})
+              Vắng có phép ({stats.excused})
             </button>
             <button
               type="button"
               className={`${styles.filterChip} ${activeFilter === 'absent' ? styles.filterChipActive : ''}`}
               onClick={() => setActiveFilter('absent')}
             >
-              Vắng không phép ({absentCount})
+              Vắng không phép ({stats.absent})
             </button>
           </div>
 
@@ -896,16 +1005,132 @@ export default function DashboardPage() {
 
                       {/* Tổng kết ngày */}
                       <td className={`${styles.colSummary} ${styles.sectionDividerLeft}`}>
-                        <span
-                          className={styles.daySummaryPill}
-                          style={{
-                            background: `var(--color-${daySummary}-bg)`,
-                            color: `var(--color-${daySummary})`,
-                            border: `1px solid var(--color-${daySummary}-border)`,
-                          }}
-                        >
-                          {STATUS_LABELS[daySummary]}
-                        </span>
+                        {(() => {
+                          const m = getEffectiveSessionStatus(row.morning, 'morning');
+                          const a = getEffectiveSessionStatus(row.afternoon, 'afternoon');
+
+                          if (viewSession === 'morning') {
+                            const s = m || 'absent';
+                            return (
+                              <span
+                                className={styles.daySummaryPill}
+                                style={{
+                                  background: `var(--color-${s}-bg)`,
+                                  color: `var(--color-${s})`,
+                                  border: `1px solid var(--color-${s}-border)`,
+                                }}
+                              >
+                                {STATUS_LABELS[s]}
+                              </span>
+                            );
+                          }
+
+                          if (viewSession === 'afternoon') {
+                            const s = a || 'absent';
+                            return (
+                              <span
+                                className={styles.daySummaryPill}
+                                style={{
+                                  background: `var(--color-${s}-bg)`,
+                                  color: `var(--color-${s})`,
+                                  border: `1px solid var(--color-${s}-border)`,
+                                }}
+                              >
+                                {STATUS_LABELS[s]}
+                              </span>
+                            );
+                          }
+
+                          const mSched = isSessionScheduled('morning');
+                          const aSched = isSessionScheduled('afternoon');
+
+                          if (mSched && aSched) {
+                            if (m === 'present' && a === 'present') {
+                              return (
+                                <span
+                                  className={styles.daySummaryPill}
+                                  style={{
+                                    background: 'var(--color-present-bg)',
+                                    color: 'var(--color-present)',
+                                    border: '1px solid var(--color-present-border)',
+                                  }}
+                                >
+                                  Có mặt đủ
+                                </span>
+                              );
+                            }
+                            if (m === 'absent' && a === 'absent') {
+                              return (
+                                <span
+                                  className={styles.daySummaryPill}
+                                  style={{
+                                    background: 'var(--color-absent-bg)',
+                                    color: 'var(--color-absent)',
+                                    border: '1px solid var(--color-absent-border)',
+                                  }}
+                                >
+                                  Vắng cả ngày
+                                </span>
+                              );
+                            }
+                            if ((m === 'present' && a === 'absent') || (m === 'absent' && a === 'present')) {
+                              return (
+                                <span
+                                  className={styles.daySummaryPill}
+                                  style={{
+                                    background: 'rgba(239, 68, 68, 0.15)',
+                                    color: '#f87171',
+                                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                                  }}
+                                  title="Sinh viên chỉ đi 1 ca và vắng 1 ca"
+                                >
+                                  Vắng 1 ca
+                                </span>
+                              );
+                            }
+                            if (m === 'late' || a === 'late') {
+                              return (
+                                <span
+                                  className={styles.daySummaryPill}
+                                  style={{
+                                    background: 'var(--color-late-bg)',
+                                    color: 'var(--color-late)',
+                                    border: '1px solid var(--color-late-border)',
+                                  }}
+                                >
+                                  Đi muộn
+                                </span>
+                              );
+                            }
+                            if (m === 'excused' || a === 'excused') {
+                              return (
+                                <span
+                                  className={styles.daySummaryPill}
+                                  style={{
+                                    background: 'var(--color-excused-bg)',
+                                    color: 'var(--color-excused)',
+                                    border: '1px solid var(--color-excused-border)',
+                                  }}
+                                >
+                                  Có phép
+                                </span>
+                              );
+                            }
+                          }
+
+                          return (
+                            <span
+                              className={styles.daySummaryPill}
+                              style={{
+                                background: `var(--color-${daySummary}-bg)`,
+                                color: `var(--color-${daySummary})`,
+                                border: `1px solid var(--color-${daySummary}-border)`,
+                              }}
+                            >
+                              {STATUS_LABELS[daySummary]}
+                            </span>
+                          );
+                        })()}
                       </td>
 
                       {/* Thao tác */}
