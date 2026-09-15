@@ -22,12 +22,30 @@ if (!fs.existsSync(dataDir)) {
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    TypeOrmModule.forRoot({
-      type: 'better-sqlite3',
-      database: path.join(process.cwd(), 'data', 'attendance.db'),
-      entities: [Student, Attendance, Settings],
-      synchronize: true, // Auto-create tables from entities
-      logging: false,
+    TypeOrmModule.forRootAsync({
+      useFactory: () => {
+        const databaseUrl = process.env.DATABASE_URL;
+        if (databaseUrl) {
+          return {
+            type: 'postgres',
+            url: databaseUrl,
+            entities: [Student, Attendance, Settings],
+            synchronize: true, // Auto-create tables in Postgres
+            ssl: {
+              rejectUnauthorized: false,
+            },
+            logging: false,
+          };
+        }
+
+        return {
+          type: 'better-sqlite3',
+          database: path.join(process.cwd(), 'data', 'attendance.db'),
+          entities: [Student, Attendance, Settings],
+          synchronize: true, // Auto-create tables from entities
+          logging: false,
+        };
+      },
     }),
     SeedModule,
     StudentsModule,

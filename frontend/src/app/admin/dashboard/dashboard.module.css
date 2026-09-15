@@ -985,3 +985,166 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* ══════════════════════════════════════
+   MOBILE RESPONSIVE — Dashboard
+══════════════════════════════════════ */
+@media (max-width: 768px) {
+  .page {
+    padding: 16px;
+  }
+
+  .pageHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .pageTitle {
+    font-size: 1.25rem;
+  }
+
+  .pageSubtitle {
+    font-size: 0.8rem;
+  }
+
+  .dateNav {
+    width: 100%;
+    justify-content: center;
+    padding: 5px 8px;
+  }
+
+  /* Stats: 2 columns on mobile */
+  .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .statCard {
+    padding: 14px 12px;
+  }
+
+  .statNum {
+    font-size: 1.75rem;
+  }
+
+  .statLabel {
+    font-size: 0.72rem;
+  }
+
+  /* Table toolbar: stack items vertically */
+  .tableToolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  /* Filter chips: horizontally scrollable */
+  .filterChips {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 6px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+  }
+
+  .filterChips::-webkit-scrollbar {
+    display: none;
+  }
+
+  .filterChip {
+    flex-shrink: 0;
+    padding: 5px 12px;
+    font-size: 0.75rem;
+  }
+
+  .searchWrap {
+    width: 100%;
+  }
+
+  .searchInput {
+    width: 100%;
+  }
+
+  .bulkAttendWrap {
+    display: flex;
+    width: 100%;
+    gap: 8px;
+  }
+
+  .bulkSessionSelect {
+    flex: 1;
+  }
+
+  .bulkAttendBtn {
+    flex: 1.5;
+    justify-content: center;
+  }
+
+  /* Table: hide heavy columns on small screens */
+  .colDob,
+  .sectionDividerRight.colDob {
+    display: none;
+  }
+
+  .colSTT {
+    width: 36px;
+  }
+
+  .colSummary {
+    display: none;
+  }
+
+  .colAction {
+    min-width: 64px;
+  }
+
+  .table th,
+  .table td {
+    padding: 10px 8px;
+  }
+
+  .studentName {
+    font-size: 0.82rem;
+  }
+
+  .avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 0.7rem;
+    flex-shrink: 0;
+  }
+
+  /* Session cell: compact */
+  .colSession {
+    min-width: 110px;
+  }
+
+  .sessionStatusPill {
+    font-size: 0.72rem;
+    padding: 3px 7px;
+  }
+
+  .timePill {
+    font-size: 0.68rem;
+  }
+
+  /* Modal: full-width on mobile */
+  .modal {
+    width: calc(100vw - 32px);
+    max-width: 420px;
+    margin: 16px;
+    max-height: calc(100dvh - 32px);
+    overflow-y: auto;
+  }
+
+  .tableCard {
+    border-radius: 12px;
+  }
+}
+

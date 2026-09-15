@@ -25,22 +25,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (isLoginPage) return <>{children}</>;
 
   const navItems = [
-    { href: '/admin/dashboard', label: '📊 Dashboard', id: 'nav-dashboard' },
-    { href: '/schedule', label: '📅 Thời khóa biểu', id: 'nav-schedule' },
-    { href: '/admin/export', label: '📥 Xuất file', id: 'nav-export' },
-    { href: '/admin/settings', label: '⚙️ Cài đặt', id: 'nav-settings' },
+    { href: '/admin/dashboard', label: 'Dashboard', icon: '📊', id: 'nav-dashboard' },
+    { href: '/schedule', label: 'Thời khóa biểu', icon: '📅', id: 'nav-schedule' },
+    { href: '/admin/export', label: 'Xuất file', icon: '📥', id: 'nav-export' },
+    { href: '/admin/settings', label: 'Cài đặt', icon: '⚙️', id: 'nav-settings' },
   ];
 
   return (
     <div className={styles.layout}>
-      {/* Sidebar */}
+      {/* ── Desktop Sidebar ── */}
       <aside className={styles.sidebar}>
         <div className={styles.sidebarTop}>
           <div className={styles.sidebarLogo}>
             <div className={styles.sidebarLogoIcon}>📹</div>
             <div>
               <div className={styles.sidebarTitle}>CQP 22</div>
-              <div className={styles.sidebarSub}>Quản lý</div>
+              <div className={styles.sidebarSub}>Quản lý điểm danh</div>
             </div>
           </div>
 
@@ -52,7 +52,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 id={item.id}
                 className={`${styles.navItem} ${pathname === item.href ? styles.navItemActive : ''}`}
               >
-                {item.label}
+                <span className={styles.navIcon}>{item.icon}</span>
+                <span>{item.label}</span>
               </Link>
             ))}
           </nav>
@@ -60,34 +61,52 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         <div className={styles.sidebarBottom}>
           <Link href="/" className={styles.navItem} id="nav-student-view">
-            👤 Trang sinh viên
+            <span className={styles.navIcon}>👤</span>
+            <span>Trang sinh viên</span>
           </Link>
           <button onClick={logout} className={styles.logoutBtn} id="nav-logout">
-            🚪 Đăng xuất
+            <span className={styles.navIcon}>🚪</span>
+            <span>Đăng xuất</span>
           </button>
         </div>
       </aside>
 
-      {/* Mobile Top Bar */}
+      {/* ── Mobile Top Header ── */}
       <header className={styles.mobileHeader}>
         <div className={styles.mobileHeaderInner}>
           <span className={styles.mobileLogo}>📹 CQP 22</span>
-          <div className={styles.mobileNav}>
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`${styles.mobileNavItem} ${pathname === item.href ? styles.mobileNavItemActive : ''}`}
-              >
-                {item.label.split(' ')[0]}
-              </Link>
-            ))}
+          <div className={styles.mobileHeaderActions}>
+            <Link href="/" className={styles.mobileHeaderLink} title="Trang sinh viên">
+              👤
+            </Link>
+            <button onClick={logout} className={styles.mobileLogoutBtn} title="Đăng xuất">
+              🚪
+            </button>
           </div>
         </div>
       </header>
 
-      {/* Main content */}
+      {/* ── Main Content ── */}
       <main className={styles.content}>{children}</main>
+
+      {/* ── Mobile Bottom Navigation Bar ── */}
+      <nav className={styles.bottomNav}>
+        {navItems.map((item) => {
+          const isActive = pathname === item.href;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              id={`mobile-${item.id}`}
+              className={`${styles.bottomNavItem} ${isActive ? styles.bottomNavItemActive : ''}`}
+            >
+              <span className={styles.bottomNavIcon}>{item.icon}</span>
+              <span className={styles.bottomNavLabel}>{item.label}</span>
+              {isActive && <span className={styles.bottomNavIndicator} />}
+            </Link>
+          );
+        })}
+      </nav>
     </div>
   );
 }
