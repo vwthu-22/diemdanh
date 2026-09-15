@@ -87,7 +87,11 @@ export default function SettingsPage() {
     setLoading(true);
     setMessage(null);
     try {
-      await api.patch('/settings', form);
+      const res = await api.patch<Settings>('/settings', form);
+      if (res.data) {
+        setSettings(res.data);
+        setForm(res.data);
+      }
       setMessage({ text: 'Đã lưu cấu hình hệ thống thành công!', type: 'success' });
       // Clear toast after 4s
       setTimeout(() => setMessage(null), 4000);
@@ -392,7 +396,7 @@ export default function SettingsPage() {
                 🗓️ Ngày bắt đầu áp dụng tính điểm danh
               </span>
               <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
-                Các ngày trước mốc này hiển thị "–" và không bị tính vắng
+                Các ngày trước mốc này hiển thị &quot;–&quot; và không bị tính vắng
               </span>
             </div>
             <input

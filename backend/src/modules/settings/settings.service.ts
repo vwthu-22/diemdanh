@@ -10,18 +10,30 @@ export class SettingsService {
     private settingsRepo: Repository<Settings>,
   ) {}
 
-  async getSettings(): Promise<Settings | null> {
-    const settings = await this.settingsRepo.findOne({ where: { id: 1 } });
-    if (settings && !settings.schedule) {
+  async getSettings(): Promise<Settings> {
+    let settings = await this.settingsRepo.findOne({ order: { id: 'ASC' } });
+    if (!settings) {
+      settings = this.settingsRepo.create({
+        schedule: DEFAULT_SCHEDULE,
+      });
+      settings = await this.settingsRepo.save(settings);
+    }
+    if (!settings.schedule) {
       settings.schedule = DEFAULT_SCHEDULE;
     }
     return settings;
   }
 
-  async updateSettings(dto: Partial<Settings>): Promise<Settings | null> {
-    await this.settingsRepo.update({ id: 1 }, dto);
-    const settings = await this.settingsRepo.findOne({ where: { id: 1 } });
-    if (settings && !settings.schedule) {
+  async updateSettings(dto: Partial<Settings>): Promise<Settings> {
+    let settings = await this.settingsRepo.findOne({ order: { id: 'ASC' } });
+    if (!settings) {
+      settings = this.settingsRepo.create(dto);
+    } else {
+      const { id, ...updateData } = dto as any;
+      Object.assign(settings, updateData);
+    }
+    settings = await this.settingsRepo.save(settings);
+    if (!settings.schedule) {
       settings.schedule = DEFAULT_SCHEDULE;
     }
     return settings;

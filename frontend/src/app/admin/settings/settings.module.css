@@ -522,7 +522,134 @@
 }
 
 @media (max-width: 1024px) {
-  .page { padding: 24px 16px; }
-  .topGrid, .bottomGrid { grid-template-columns: 1fr; }
-  .stickySaveBar { left: 0; padding: 14px 20px; }
+  .page {
+    padding: 20px 16px 120px 16px;
+  }
+  .topGrid, .bottomGrid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .stickySaveBar {
+    left: 0;
+    padding: 12px 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .page {
+    padding: 16px 12px 140px 12px;
+  }
+
+  .pageHeader {
+    margin-bottom: 18px;
+  }
+
+  .pageTitle {
+    font-size: 1.35rem;
+  }
+
+  .pageSubtitle {
+    font-size: 0.8rem;
+  }
+
+  .topGrid, .bottomGrid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+
+  .sectionCard, .scheduleCard, .infoCard, .dangerCard {
+    padding: 16px 14px;
+    border-radius: 12px;
+  }
+
+  .fieldRow {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .timeFieldGrid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .gpsActions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .gpsBtn, .mapLink {
+    text-align: center;
+    justify-content: center;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .scheduleHeaderRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .presetBar {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .presetBtn {
+    flex: 1 1 calc(50% - 6px);
+    text-align: center;
+    padding: 8px 6px;
+    font-size: 0.75rem;
+  }
+
+  .tableResponsive {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .scheduleTable {
+    min-width: 580px;
+  }
+
+  .stickySaveBar {
+    left: 0;
+    right: 0;
+    bottom: 56px; /* Sits right above mobile bottom nav */
+    padding: 10px 14px;
+    flex-direction: column;
+    gap: 8px;
+    background: rgba(10, 15, 30, 0.96);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.6);
+  }
+
+  .saveBarLeft {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .toastMsg {
+    font-size: 0.78rem;
+    padding: 4px 10px;
+  }
+
+  .saveBtn {
+    width: 100%;
+    justify-content: center;
+    padding: 11px 20px;
+    font-size: 0.9rem;
+  }
+
+  .dangerActions {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .dangerBtn, .resetDevBtn {
+    width: 100%;
+    text-align: center;
+    justify-content: center;
+  }
 }

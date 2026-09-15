@@ -284,7 +284,7 @@ export class ExportService {
       .where('a.date >= :from AND a.date <= :to', { from, to })
       .getMany();
 
-    const settings = await this.settingsRepo.findOne({ where: { id: 1 } });
+    const settings = await this.settingsRepo.findOne({ order: { id: 'ASC' } });
     const schedule = settings?.schedule || DEFAULT_SCHEDULE;
     const today = getTodayVN();
     const currentTime = getCurrentTimeVN();
@@ -493,7 +493,7 @@ export class ExportService {
       .where('a.date >= :from AND a.date <= :to', { from, to })
       .getMany();
 
-    const settings = await this.settingsRepo.findOne({ where: { id: 1 } });
+    const settings = await this.settingsRepo.findOne({ order: { id: 'ASC' } });
     const schedule = settings?.schedule || DEFAULT_SCHEDULE;
     const today = getTodayVN();
     const currentTime = getCurrentTimeVN();

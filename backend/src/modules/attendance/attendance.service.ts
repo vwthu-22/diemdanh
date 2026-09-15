@@ -34,8 +34,11 @@ export class AttendanceService {
   ) {}
 
   private async getSettings(): Promise<Settings> {
-    const settings = await this.settingsRepo.findOne({ where: { id: 1 } });
-    if (!settings) throw new Error('Settings not initialized');
+    let settings = await this.settingsRepo.findOne({ order: { id: 'ASC' } });
+    if (!settings) {
+      settings = this.settingsRepo.create({});
+      settings = await this.settingsRepo.save(settings);
+    }
     return settings;
   }
 
