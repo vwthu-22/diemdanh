@@ -24,8 +24,15 @@ if (!fs.existsSync(dataDir)) {
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRootAsync({
       useFactory: () => {
-        const databaseUrl = process.env.DATABASE_URL;
+        let databaseUrl = process.env.DATABASE_URL;
         if (databaseUrl) {
+          // Remove channel_binding parameter as pg driver doesn't support it
+          databaseUrl = databaseUrl.replace(/[?&]channel_binding=[^&]+/g, '');
+          if (!databaseUrl.includes('?') && databaseUrl.includes('&')) {
+            const firstAmp = databaseUrl.indexOf('&');
+            databaseUrl = databaseUrl.slice(0, firstAmp) + '?' + databaseUrl.slice(firstAmp + 1);
+          }
+
           return {
             type: 'postgres',
             url: databaseUrl,
