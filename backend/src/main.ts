@@ -9,15 +9,22 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
 
   // CORS for Next.js frontend (supports localhost, Vercel deployments, custom domain)
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:3001',
+    process.env.FRONTEND_URL,
+  ].filter(Boolean);
+
   app.enableCors({
     origin: (requestOrigin, callback) => {
       // Allow requests with no origin (like mobile apps, curl, etc.)
       if (!requestOrigin) return callback(null, true);
-      const frontendUrl = process.env.FRONTEND_URL;
-      if (!frontendUrl || frontendUrl === '*' || requestOrigin === frontendUrl) {
+      // Allow explicitly listed origins
+      if (allowedOrigins.includes(requestOrigin)) {
         return callback(null, true);
       }
-      if (requestOrigin.endsWith('.vercel.app') || requestOrigin.includes('localhost')) {
+      // Allow all Vercel preview deployments
+      if (requestOrigin.endsWith('.vercel.app')) {
         return callback(null, true);
       }
       return callback(null, true);
