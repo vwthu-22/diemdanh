@@ -27,7 +27,7 @@ const STUDENTS = [
   { orderNum: 17, name: 'Nguyễn Công Minh', dob: '19/07/2008' },
   { orderNum: 18, name: 'Nguyễn Đức Minh', dob: '26/05/2008' },
   { orderNum: 19, name: 'Nguyễn Xuân Minh', dob: '25/11/2007' },
-  { orderNum: 20, name: 'Hà Hải Nam', dob: '11/11/1111' },
+  { orderNum: 20, name: 'Hà Hải Nam', dob: '07/08/2002' },
   { orderNum: 21, name: 'Trần Bảo Nam', dob: '12/11/2008' },
   { orderNum: 22, name: 'Nguyễn Hữu Ngọc', dob: '20/02/2006' },
   { orderNum: 23, name: 'Trần Đức Phát', dob: '07/02/2008' },
