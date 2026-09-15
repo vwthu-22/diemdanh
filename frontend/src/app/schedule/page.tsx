@@ -272,7 +272,6 @@ export default function SchedulePage() {
         {/* Day Filter for Fast Mobile Navigation */}
         {selectedWeek !== 'all' && (
           <div className={styles.dayFilterRow}>
-            <span className={styles.dayFilterLabel}>Lọc theo thứ:</span>
             <div className={styles.dayPillsScroll}>
               <button
                 className={`${styles.dayPill} ${selectedDay === 'all' ? styles.dayPillActive : ''}`}
