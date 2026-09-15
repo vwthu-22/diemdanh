@@ -126,9 +126,6 @@ export default function SchedulePage() {
         <div className={styles.headerInfo}>
           <div className={styles.headerBadge}>Kỳ 1 • Năm học 2026</div>
           <h1 className={styles.title}>Thời Khóa Biểu CQP22</h1>
-          <p className={styles.subtitle}>
-            Trường Cao đẳng Truyền hình • Lớp hành chính CQP 22
-          </p>
         </div>
 
         <div className={styles.headerActions}>
@@ -201,7 +198,7 @@ export default function SchedulePage() {
             disabled={selectedWeek === 5}
             title="Xem tuần trước"
           >
-            ← Tuần trước
+            ← 
           </button>
 
           <div className={styles.weekSelectorCenter}>
@@ -217,7 +214,7 @@ export default function SchedulePage() {
               <option value="all">Toàn bộ kỳ (Tuần 5 – 20)</option>
               {WEEKS_LIST.map((w) => (
                 <option key={w.week} value={w.week}>
-                  Tuần {w.week}: {w.label}
+                  {w.label}
                 </option>
               ))}
             </select>
@@ -236,7 +233,7 @@ export default function SchedulePage() {
             disabled={selectedWeek === 20}
             title="Xem tuần tiếp theo"
           >
-            Tuần sau →
+             →
           </button>
         </div>
 
@@ -249,7 +246,7 @@ export default function SchedulePage() {
               setSelectedDay('all');
             }}
           >
-            Tất cả (16 tuần)
+            Tất cả
           </button>
           {WEEKS_LIST.map((w) => (
             <button
@@ -266,37 +263,6 @@ export default function SchedulePage() {
             </button>
           ))}
         </div>
-
-        {/* Day Filter for Fast Mobile Navigation */}
-        {selectedWeek !== 'all' && (
-          <div className={styles.dayFilterRow}>
-            <span className={styles.dayFilterLabel}>Lọc theo thứ:</span>
-            <div className={styles.dayPillsScroll}>
-              <button
-                className={`${styles.dayPill} ${selectedDay === 'all' ? styles.dayPillActive : ''}`}
-                onClick={() => setSelectedDay('all')}
-              >
-                Cả tuần
-              </button>
-              {[
-                { num: 2, label: 'Thứ 2' },
-                { num: 3, label: 'Thứ 3' },
-                { num: 4, label: 'Thứ 4' },
-                { num: 5, label: 'Thứ 5' },
-                { num: 6, label: 'Thứ 6' },
-                { num: 7, label: 'Thứ 7' },
-              ].map((d) => (
-                <button
-                  key={d.num}
-                  className={`${styles.dayPill} ${selectedDay === d.num ? styles.dayPillActive : ''}`}
-                  onClick={() => setSelectedDay(d.num)}
-                >
-                  {d.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Secondary Search & View Mode Switcher */}
