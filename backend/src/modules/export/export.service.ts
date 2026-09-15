@@ -141,16 +141,14 @@ export class ExportService {
 
       // Determine daily summary
       let dailyStatus: AttendanceStatus;
-      if (morningStatus === AttendanceStatus.EXCUSED && afternoonStatus === AttendanceStatus.EXCUSED) {
-        dailyStatus = AttendanceStatus.EXCUSED;
-      } else if (morningStatus === AttendanceStatus.LATE || afternoonStatus === AttendanceStatus.LATE) {
+      if (morningStatus === AttendanceStatus.LATE || afternoonStatus === AttendanceStatus.LATE) {
         dailyStatus = AttendanceStatus.LATE;
-      } else if (!morningStatus && !afternoonStatus) {
-        dailyStatus = AttendanceStatus.ABSENT;
-      } else if (!morningStatus || !afternoonStatus) {
-        dailyStatus = AttendanceStatus.LATE;
-      } else {
+      } else if (morningStatus === AttendanceStatus.PRESENT || afternoonStatus === AttendanceStatus.PRESENT) {
         dailyStatus = AttendanceStatus.PRESENT;
+      } else if (morningStatus === AttendanceStatus.EXCUSED || afternoonStatus === AttendanceStatus.EXCUSED) {
+        dailyStatus = AttendanceStatus.EXCUSED;
+      } else {
+        dailyStatus = AttendanceStatus.ABSENT;
       }
 
       if (dailyStatus === AttendanceStatus.PRESENT) present++;

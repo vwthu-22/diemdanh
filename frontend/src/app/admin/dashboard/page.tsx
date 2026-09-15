@@ -87,6 +87,28 @@ export default function DashboardPage() {
     } catch {}
   };
 
+  const createOrUpdateStatus = async (
+    record: AttendanceRecord | null,
+    studentId: number,
+    session: AttendanceSession,
+    status: AttendanceStatus
+  ) => {
+    if (record) {
+      await updateStatus(record.id, status);
+    } else {
+      try {
+        await api.post('/admin/excuse', {
+          studentId,
+          date,
+          session,
+          note: '',
+          status,
+        });
+        fetchData(true);
+      } catch {}
+    }
+  };
+
   const deleteRecord = async (id: number) => {
     try {
       await api.delete(`/admin/attendance/${id}`);
@@ -175,15 +197,62 @@ export default function DashboardPage() {
     } catch {}
   };
 
-  // Compute Daily summary for a row (consistent with export and status logic)
-  const getRowSummary = (row: DailyAttendanceRow): AttendanceStatus => {
-    const records = [row.morning, row.afternoon].filter(Boolean) as AttendanceRecord[];
-    if (records.length === 0) return 'absent';
-    if (records.some((r) => r.status === 'late')) return 'late';
-    if (records.every((r) => r.status === 'present')) return 'present';
-    if (records.some((r) => r.status === 'excused')) return 'excused';
+  const isSessionClosed = useCallback((session: 'morning' | 'afternoon') => {
+    const now = new Date();
+    const currentToday = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(now);
+    if (date < currentToday) return true; // Quá khứ đã đóng cổng
+    if (date > currentToday) return false; // Tương lai chưa tới giờ
+
+    const currentTime = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Ho_Chi_Minh',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).format(now);
+    const lateEnd = session === 'morning' ? (settings?.morningLateEnd || '08:15') : (settings?.afternoonLateEnd || '13:45');
+    return currentTime > lateEnd;
+  }, [date, settings]);
+
+  const getDayOfWeekKey = useCallback((dateStr: string) => {
+    const d = new Date(dateStr + 'T00:00:00+07:00');
+    return d.getDay().toString();
+  }, []);
+
+  const isSessionScheduled = useCallback((session: 'morning' | 'afternoon') => {
+    const dow = getDayOfWeekKey(date);
+    const schedule = settings?.schedule;
+    if (!schedule) return true;
+    return schedule[dow]?.includes(session) ?? true;
+  }, [date, getDayOfWeekKey, settings]);
+
+  const getEffectiveSessionStatus = useCallback((
+    record: AttendanceRecord | null,
+    session: 'morning' | 'afternoon'
+  ): AttendanceStatus | null => {
+    if (record) return record.status;
+    if (!isSessionScheduled(session)) return null; // Ca nghỉ theo TKB
+    if (isSessionClosed(session)) return 'absent'; // Tự động tính là vắng khi đã đóng cổng
+    return null; // Đang mở cổng hoặc chưa tới giờ
+  }, [isSessionScheduled, isSessionClosed]);
+
+  // Compute Daily summary for a row (consistent with export and user requirement)
+  const getRowSummary = useCallback((row: DailyAttendanceRow): AttendanceStatus => {
+    const morningStatus = getEffectiveSessionStatus(row.morning, 'morning');
+    const afternoonStatus = getEffectiveSessionStatus(row.afternoon, 'afternoon');
+
+    const statuses = [morningStatus, afternoonStatus].filter(Boolean) as AttendanceStatus[];
+    if (statuses.length === 0) return 'absent';
+
+    // Priority:
+    // 1. If any session attended is late -> late (Đi muộn)
+    if (statuses.some((s) => s === 'late')) return 'late';
+    // 2. If any session attended is present -> present (Có mặt)
+    if (statuses.some((s) => s === 'present')) return 'present';
+    // 3. If any session is excused -> excused (Vắng có phép)
+    if (statuses.some((s) => s === 'excused')) return 'excused';
+    // 4. Otherwise -> absent (Vắng không phép)
     return 'absent';
-  };
+  }, [getEffectiveSessionStatus]);
 
   // Stats computation (derived 100% consistently from getRowSummary)
   const totalStudents = rows.length;
@@ -217,7 +286,7 @@ export default function DashboardPage() {
 
       return true;
     });
-  }, [rows, searchQuery, activeFilter]);
+  }, [rows, searchQuery, activeFilter, getRowSummary]);
 
   const [ty, tm, td] = date.split('-');
   const formattedDate = `${td}/${tm}/${ty}`;
@@ -632,6 +701,51 @@ export default function DashboardPage() {
                               </button>
                             </div>
                           </div>
+                        ) : !isSessionScheduled('morning') ? (
+                          <div style={{ textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '0.78rem' }}>
+                            — Nghỉ học
+                          </div>
+                        ) : isSessionClosed('morning') ? (
+                          <div className={styles.sessionBox}>
+                            <span
+                              className={`${styles.sessionStatusPill} badge-absent`}
+                              style={{
+                                background: 'var(--color-absent-bg)',
+                                color: 'var(--color-absent)',
+                                border: '1px solid var(--color-absent-border)',
+                              }}
+                            >
+                              ✕ Vắng không phép
+                            </span>
+                            <div className={styles.quickActionRow}>
+                              <select
+                                className={styles.statusMiniSelect}
+                                value="absent"
+                                onChange={(e) => {
+                                  if (e.target.value !== 'absent' && e.target.value !== 'delete') {
+                                    createOrUpdateStatus(null, student.id, 'morning', e.target.value as AttendanceStatus);
+                                  }
+                                }}
+                              >
+                                {ALL_STATUSES.map((s) => (
+                                  <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+                                ))}
+                              </select>
+                              <button
+                                type="button"
+                                className={styles.miniEditBtn}
+                                title="Thêm phép / sửa trạng thái"
+                                onClick={() => {
+                                  setExcuseModal({ studentId: student.id, name: student.name, dob: student.dob });
+                                  setExcuseSession('morning');
+                                  setExcuseStatus('excused');
+                                  setExcuseNote('');
+                                }}
+                              >
+                                ✏️
+                              </button>
+                            </div>
+                          </div>
                         ) : (
                           <button
                             type="button"
@@ -731,6 +845,51 @@ export default function DashboardPage() {
                                 onClick={() => deleteRecord(afternoon.id)}
                               >
                                 ✕
+                              </button>
+                            </div>
+                          </div>
+                        ) : !isSessionScheduled('afternoon') ? (
+                          <div style={{ textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '0.78rem' }}>
+                            — Nghỉ học
+                          </div>
+                        ) : isSessionClosed('afternoon') ? (
+                          <div className={styles.sessionBox}>
+                            <span
+                              className={`${styles.sessionStatusPill} badge-absent`}
+                              style={{
+                                background: 'var(--color-absent-bg)',
+                                color: 'var(--color-absent)',
+                                border: '1px solid var(--color-absent-border)',
+                              }}
+                            >
+                              ✕ Vắng không phép
+                            </span>
+                            <div className={styles.quickActionRow}>
+                              <select
+                                className={styles.statusMiniSelect}
+                                value="absent"
+                                onChange={(e) => {
+                                  if (e.target.value !== 'absent' && e.target.value !== 'delete') {
+                                    createOrUpdateStatus(null, student.id, 'afternoon', e.target.value as AttendanceStatus);
+                                  }
+                                }}
+                              >
+                                {ALL_STATUSES.map((s) => (
+                                  <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+                                ))}
+                              </select>
+                              <button
+                                type="button"
+                                className={styles.miniEditBtn}
+                                title="Thêm phép / sửa trạng thái"
+                                onClick={() => {
+                                  setExcuseModal({ studentId: student.id, name: student.name, dob: student.dob });
+                                  setExcuseSession('afternoon');
+                                  setExcuseStatus('excused');
+                                  setExcuseNote('');
+                                }}
+                              >
+                                ✏️
                               </button>
                             </div>
                           </div>
