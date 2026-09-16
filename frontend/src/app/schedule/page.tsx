@@ -468,17 +468,19 @@ export default function SchedulePage() {
         <div className={styles.bottomBarInner}>
           <Link
             href="/"
-            className={styles.bottomBtnPrimary}
+            className={styles.bottomNavBtn}
             id="btn-footer-checkin"
           >
-            Vào điểm danh
+            <span className={styles.bottomNavIcon}>📋</span>
+            <span>Điểm danh</span>
           </Link>
           <Link
-            href="/admin"
-            className={styles.bottomBtnSecondary}
-            id="btn-footer-admin"
+            href="/schedule"
+            className={`${styles.bottomNavBtn} ${styles.bottomNavBtnActive}`}
+            id="btn-footer-schedule"
           >
-            Quản trị
+            <span className={styles.bottomNavIcon}>📅</span>
+            <span>Thời khóa biểu</span>
           </Link>
         </div>
       </footer>

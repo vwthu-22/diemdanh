@@ -4,7 +4,7 @@
   z-index: 1;
   max-width: 480px;
   margin: 0 auto;
-  padding-bottom: 40px;
+  padding-bottom: 90px;
 }
 
 .header {
@@ -363,4 +363,61 @@
 .footerNote {
   font-size: 0.78rem;
   margin-top: 8px;
+}
+
+/* ── Bottom Navigation Bar ──────────────────────────────── */
+.bottomBar {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 480px;
+  z-index: 100;
+  padding: 10px 16px 14px;
+  background: rgba(10, 15, 30, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.bottomBarInner {
+  display: flex;
+  gap: 10px;
+}
+
+.bottomNavBtn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 10px 8px;
+  border-radius: 14px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  text-decoration: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.bottomNavBtn:hover {
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.bottomNavBtnActive {
+  color: #60a5fa;
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.35);
+}
+
+.bottomNavIcon {
+  font-size: 1.2rem;
+  line-height: 1;
 }

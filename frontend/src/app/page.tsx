@@ -191,10 +191,7 @@ export default function StudentPage() {
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Link href="/schedule" className={`btn btn-secondary ${styles.adminLink}`} id="link-header-schedule">
-              Thời khóa biểu
-            </Link>
-            <Link href="/admin" className={`btn btn-secondary ${styles.adminLink}`}>
+            <Link href="/admin" className={`btn btn-secondary ${styles.adminLink}`} id="link-header-admin">
               Quản lý
             </Link>
           </div>
@@ -442,6 +439,20 @@ export default function StudentPage() {
           Điểm danh yêu cầu có mặt tại trường và bật GPS
         </p>
       </main>
+
+      {/* Bottom Navigation Bar */}
+      <footer className={styles.bottomBar}>
+        <div className={styles.bottomBarInner}>
+          <Link href="/" className={`${styles.bottomNavBtn} ${styles.bottomNavBtnActive}`} id="btn-bottom-checkin">
+            <span className={styles.bottomNavIcon}>📋</span>
+            <span>Điểm danh</span>
+          </Link>
+          <Link href="/schedule" className={styles.bottomNavBtn} id="btn-bottom-schedule">
+            <span className={styles.bottomNavIcon}>📅</span>
+            <span>Thời khóa biểu</span>
+          </Link>
+        </div>
+      </footer>
     </div>
   );
 }

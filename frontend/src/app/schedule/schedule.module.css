@@ -823,49 +823,41 @@
   max-width: 480px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
-.bottomBtnPrimary {
-  flex: 1.2;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 10px 20px;
-  background: #2563eb;
-  color: #ffffff;
-  font-weight: 700;
-  font-size: 0.9rem;
-  border-radius: 9999px;
-  text-decoration: none;
-  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
-  transition: all 0.2s ease;
-}
-
-.bottomBtnPrimary:hover {
-  background: #1d4ed8;
-  transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.5);
-}
-
-.bottomBtnSecondary {
+.bottomNavBtn {
   flex: 1;
-  display: inline-flex;
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 10px 18px;
-  background: rgba(30, 41, 59, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  color: #e2e8f0;
-  font-weight: 700;
-  font-size: 0.9rem;
-  border-radius: 9999px;
+  gap: 4px;
+  padding: 10px 8px;
+  border-radius: 14px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.07);
   text-decoration: none;
   transition: all 0.2s ease;
+  cursor: pointer;
 }
 
-.bottomBtnSecondary:hover {
-  background: rgba(51, 65, 85, 0.95);
-  border-color: rgba(255, 255, 255, 0.3);
-  color: #ffffff;
+.bottomNavBtn:hover {
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.bottomNavBtnActive {
+  color: #60a5fa;
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.35);
+}
+
+.bottomNavIcon {
+  font-size: 1.2rem;
+  line-height: 1;
 }

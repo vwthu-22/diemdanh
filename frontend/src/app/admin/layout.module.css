@@ -154,7 +154,7 @@
 ══════════════════════════════════════ */
 .mobileHeader {
   display: none;
-  position: fixed;
+  position: sticky;
   top: 0;
   left: 0;
   right: 0;
@@ -163,6 +163,7 @@
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  padding-top: env(safe-area-inset-top, 0px);
 }
 
 .mobileHeaderInner {
@@ -292,6 +293,11 @@
    RESPONSIVE BREAKPOINTS
 ══════════════════════════════════════ */
 @media (max-width: 768px) {
+  .layout {
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
   .sidebar {
     display: none;
   }
@@ -303,12 +309,18 @@
   .bottomNav {
     display: flex;
     flex-direction: row;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 95;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
   .content {
     margin-left: 0;
-    /* header ~57px + bottom nav ~60px */
-    padding-top: 57px;
-    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+    padding-top: 0;
+    padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+    min-height: calc(100vh - 60px);
   }
 }

@@ -1,7 +1,7 @@
 import { Controller, Get, Patch, Body, UseGuards } from '@nestjs/common';
 import { SettingsService } from './settings.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { Settings } from '../../entities/settings.entity';
+import { UpdateSettingsDto } from './dto/update-settings.dto';
 
 @Controller('settings')
 export class SettingsController {
@@ -14,7 +14,8 @@ export class SettingsController {
 
   @UseGuards(JwtAuthGuard)
   @Patch()
-  updateSettings(@Body() dto: Partial<Settings>) {
-    return this.settingsService.updateSettings(dto);
+  updateSettings(@Body() dto: UpdateSettingsDto) {
+    return this.settingsService.updateSettings(dto as any);
   }
 }
+
