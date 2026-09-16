@@ -471,7 +471,6 @@ export default function SchedulePage() {
             className={styles.bottomNavBtn}
             id="btn-footer-checkin"
           >
-            <span className={styles.bottomNavIcon}>📋</span>
             <span>Điểm danh</span>
           </Link>
           <Link
@@ -479,7 +478,6 @@ export default function SchedulePage() {
             className={`${styles.bottomNavBtn} ${styles.bottomNavBtnActive}`}
             id="btn-footer-schedule"
           >
-            <span className={styles.bottomNavIcon}>📅</span>
             <span>Thời khóa biểu</span>
           </Link>
         </div>
