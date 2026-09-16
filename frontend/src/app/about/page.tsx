@@ -76,7 +76,7 @@ export default function AboutPage() {
   const matchHero = !q || normalize('Truong Cao dang Truyen hinh VTV College 70 nam Dai Truyen hinh Viet Nam Hoc that Lam that Viec that toan soan truong quay').includes(q);
   const matchClass = !q || normalize('Lop CQP22 Khoa 22 Chuyen nganh Quay phim tan sinh vien nghe thuat thi giac dung phim AI Video Creation MV cua toi 2026').includes(q);
   const matchTeacher = !q || normalize('Thay Nguyen Xuan Mien giang vien chu nhiem lop CQP22 Khoa Bao chi Truyen thong Quay phim Nghe thuat Quay phim 1 2 Ngay hoi viec lam MV cua toi 2026 Thanh xuan VTVCollege').includes(q);
-  const matchLeaders = !q || normalize('Ban Giam Hieu Hieu truong TS Tran Tien Bi thu Dang uy TS Nguyen Minh Hai Chu tich Hoi dong truong Pho Hieu truong').includes(q);
+  const matchLeaders = !q || normalize('Ban Giam Hieu Hieu truong TS Tran Tiến Bi thu Dang uy TS Nguyen Minh Hai Chu tich Hoi dong truong Pho Hieu truong').includes(q);
 
   const filteredDepts = useMemo(() => {
     if (!q) return departments;
@@ -101,7 +101,6 @@ export default function AboutPage() {
         {/* ─── Search Bar Sticky ─── */}
         <div className={styles.searchSection}>
           <div className={styles.searchBarWrapper}>
-            <span className={styles.searchIcon}>🔍</span>
             <input
               type="text"
               className={styles.searchInput}
@@ -120,23 +119,6 @@ export default function AboutPage() {
                 ✕
               </button>
             )}
-          </div>
-
-          {/* Quick Search Tags */}
-          <div className={styles.quickTagsScroll}>
-            {QUICK_SEARCH_CHIPS.map((chip) => {
-              const isActive = searchTerm.toLowerCase() === chip.query.toLowerCase() || (!searchTerm && !chip.query);
-              return (
-                <button
-                  key={chip.label}
-                  type="button"
-                  className={`${styles.quickTag} ${isActive ? styles.quickTagActive : ''}`}
-                  onClick={() => setSearchTerm(chip.query)}
-                >
-                  {chip.label}
-                </button>
-              );
-            })}
           </div>
 
           {searchTerm && (
@@ -190,10 +172,10 @@ export default function AboutPage() {
               Lớp <strong>CQP22</strong> quy tụ những tân sinh viên năng động, đam mê nghệ thuật thị giác và công nghệ ghi hình hiện đại. Được đào tạo theo chuẩn thực chiến của Đài Truyền hình Việt Nam, sinh viên lớp CQP22 luôn tiên phong trong các dự án sản xuất video, phóng sự, MV ca nhạc và ứng dụng trí tuệ nhân tạo (AI) trong sáng tạo nghệ thuật.
             </p>
             <div className={styles.tagGrid}>
-              <span className={styles.tagItem}>🎥 Nghệ thuật Quay phim</span>
-              <span className={styles.tagItem}>🎬 Kỹ xảo & Dựng phim</span>
-              <span className={styles.tagItem}>🤖 AI Video Creation</span>
-              <span className={styles.tagItem}>🏆 MV của tôi 2026</span>
+              <span className={styles.tagItem}>Nghệ thuật Quay phim</span>
+              <span className={styles.tagItem}>Kỹ xảo & Dựng phim</span>
+              <span className={styles.tagItem}>AI Video Creation</span>
+              <span className={styles.tagItem}>MV của tôi 2026</span>
             </div>
           </section>
         )}
@@ -209,28 +191,24 @@ export default function AboutPage() {
 
             <div className={styles.featureList}>
               <div className={styles.featureItem}>
-                <div className={styles.featureIcon}>📚</div>
                 <div className={styles.featureText}>
                   <strong>Học phần chuyên môn cốt lõi:</strong> Trực tiếp phụ trách giảng dạy môn <em>&ldquo;Nghệ thuật Quay phim 1&rdquo;</em> và <em>&ldquo;Nghệ thuật Quay phim 2&rdquo;</em>. Phong cách giảng dạy đề cao tính thực chiến tại phim trường ngoại cảnh và trường quay chuyên nghiệp.
                 </div>
               </div>
 
               <div className={styles.featureItem}>
-                <div className={styles.featureIcon}>💼</div>
                 <div className={styles.featureText}>
                   <strong>Định hướng nghề nghiệp:</strong> Người trực tiếp điều phối sự kiện <em>&ldquo;Ngày hội việc làm VTV College&rdquo;</em> quy mô lớn, kết nối sinh viên với các đài truyền hình, cơ quan báo chí và doanh nghiệp truyền thông hàng đầu.
                 </div>
               </div>
 
               <div className={styles.featureItem}>
-                <div className={styles.featureIcon}>🌟</div>
                 <div className={styles.featureText}>
                   <strong>Truyền lửa sáng tạo & Công nghệ AI:</strong> Khởi xướng cuộc thi chuyên nghiệp <em>&ldquo;MV của tôi 2026&rdquo;</em> với chủ đề <em>&ldquo;Thanh xuân VTVCollege&rdquo;</em>, tạo bệ phóng để sinh viên Quay phim ứng dụng công cụ AI vào phát triển kịch bản và hoàn thiện kỹ xảo hình ảnh.
                 </div>
               </div>
 
               <div className={styles.featureItem}>
-                <div className={styles.featureIcon}>✍️</div>
                 <div className={styles.featureText}>
                   <strong>Tâm huyết sư phạm:</strong> Tác giả nhiều bài viết, báo cáo chuyên môn phản ánh sâu sắc không khí học tập, hoạt động trải nghiệm thực tế và văn hóa nhà trường trên các cổng thông tin truyền thông chính thống.
                 </div>
@@ -243,7 +221,6 @@ export default function AboutPage() {
         {matchLeaders && (
           <section className={styles.sectionCard}>
             <div className={styles.sectionHeader}>
-              <div className={styles.sectionIcon}>🏛️</div>
               <div>
                 <h2 className={styles.sectionTitle}>Ban Giám Hiệu & Lãnh Đạo Nhà Trường</h2>
                 <div className={styles.sectionSubtitle}>Dẫn dắt chiến lược phát triển VTV College</div>
@@ -278,7 +255,6 @@ export default function AboutPage() {
         {filteredDepts.length > 0 && (
           <section className={styles.sectionCard}>
             <div className={styles.sectionHeader}>
-              <div className={styles.sectionIcon}>📋</div>
               <div>
                 <h2 className={styles.sectionTitle}>Cơ Cấu Tổ Chức & Đơn Vị Chuyên Môn</h2>
                 <div className={styles.sectionSubtitle}>Hệ thống khoa, phòng ban và trung tâm trực thuộc</div>
