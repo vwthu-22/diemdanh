@@ -153,10 +153,7 @@ export class ExportService {
 
       if (dailyStatus === AttendanceStatus.PRESENT) present++;
       else if (dailyStatus === AttendanceStatus.LATE) late++;
-      else if (dailyStatus === AttendanceStatus.EXCUSED) {
-        excused++;
-        absent++;
-      }
+      else if (dailyStatus === AttendanceStatus.EXCUSED) excused++;
       else absent++;
 
       const bgAlternate = idx % 2 === 0 ? 'FFF8FAFC' : 'FFFFFFFF';
@@ -418,10 +415,7 @@ export class ExportService {
           mColor = this.getStatusColor(morningRec.status);
           if (morningRec.status === AttendanceStatus.PRESENT) cntPresent++;
           else if (morningRec.status === AttendanceStatus.LATE) cntLate++;
-          else if (morningRec.status === AttendanceStatus.EXCUSED) {
-            cntExcused++;
-            cntAbsent++;
-          }
+          else if (morningRec.status === AttendanceStatus.EXCUSED) cntExcused++;
           else if (morningRec.status === AttendanceStatus.ABSENT) cntAbsent++;
         } else if (morningScheduled && isMorningPassed) {
           // Scheduled session has ended but student was not checked in -> VẮNG!
@@ -440,10 +434,7 @@ export class ExportService {
           aColor = this.getStatusColor(afternoonRec.status);
           if (afternoonRec.status === AttendanceStatus.PRESENT) cntPresent++;
           else if (afternoonRec.status === AttendanceStatus.LATE) cntLate++;
-          else if (afternoonRec.status === AttendanceStatus.EXCUSED) {
-            cntExcused++;
-            cntAbsent++;
-          }
+          else if (afternoonRec.status === AttendanceStatus.EXCUSED) cntExcused++;
           else if (afternoonRec.status === AttendanceStatus.ABSENT) cntAbsent++;
         } else if (afternoonScheduled && isAfternoonPassed) {
           // Scheduled session has ended but student was not checked in -> VẮNG!
@@ -637,10 +628,7 @@ export class ExportService {
           mColor = this.getStatusColor(morningRec.status);
           if (morningRec.status === AttendanceStatus.PRESENT) cntPresent++;
           else if (morningRec.status === AttendanceStatus.LATE) cntLate++;
-          else if (morningRec.status === AttendanceStatus.EXCUSED) {
-            cntExcused++;
-            cntAbsent++;
-          }
+          else if (morningRec.status === AttendanceStatus.EXCUSED) cntExcused++;
           else if (morningRec.status === AttendanceStatus.ABSENT) cntAbsent++;
         } else if (morningScheduled && isMorningPassed) {
           mLabel = '✗';
@@ -658,10 +646,7 @@ export class ExportService {
           aColor = this.getStatusColor(afternoonRec.status);
           if (afternoonRec.status === AttendanceStatus.PRESENT) cntPresent++;
           else if (afternoonRec.status === AttendanceStatus.LATE) cntLate++;
-          else if (afternoonRec.status === AttendanceStatus.EXCUSED) {
-            cntExcused++;
-            cntAbsent++;
-          }
+          else if (afternoonRec.status === AttendanceStatus.EXCUSED) cntExcused++;
           else if (afternoonRec.status === AttendanceStatus.ABSENT) cntAbsent++;
         } else if (afternoonScheduled && isAfternoonPassed) {
           aLabel = '✗';

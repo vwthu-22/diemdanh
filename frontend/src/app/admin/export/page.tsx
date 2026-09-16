@@ -311,10 +311,7 @@ function WeeklyPreview({ from, to }: { from: string; to: string }) {
         const state = getSessionState(studentId, d, sess);
         if (state.status === 'present') present++;
         else if (state.status === 'late') late++;
-        else if (state.status === 'excused') {
-          excused++;
-          absent++;
-        }
+        else if (state.status === 'excused') excused++;
         else if (state.isAbsent) absent++;
       });
     });
@@ -498,10 +495,7 @@ function MonthlyPreview({ month }: { month: string }) {
         const state = getSessionState(studentId, d, sess);
         if (state.status === 'present') present++;
         else if (state.status === 'late') late++;
-        else if (state.status === 'excused') {
-          excused++;
-          absent++;
-        }
+        else if (state.status === 'excused') excused++;
         else if (state.isAbsent) absent++;
       });
     });
@@ -681,10 +675,6 @@ export default function ExportPage() {
       {mode === 'daily' && (
         <div className={`card ${styles.exportCard} fade-in`}>
           <h2 className={styles.cardTitle}>Xuất điểm danh theo ngày</h2>
-          <p className={styles.cardDesc}>
-            File Excel sẽ bao gồm: Giờ vào sáng/chiều, trạng thái từng buổi,
-            tổng kết ngày và thống kê sĩ số.
-          </p>
           <div className={styles.actionRow}>
             <div className={styles.dateField}>
               <label className={styles.fieldLabel}>Chọn ngày</label>
@@ -701,10 +691,6 @@ export default function ExportPage() {
       {mode === 'weekly' && (
         <div className={`card ${styles.exportCard} fade-in`}>
           <h2 className={styles.cardTitle}>Xuất điểm danh theo tuần</h2>
-          <p className={styles.cardDesc}>
-            File Excel dạng ma trận: mỗi ngày có 2 cột Sáng/Chiều,
-            tổng kết số buổi có mặt, muộn, vắng, phép của từng bạn.
-          </p>
           <div className={styles.actionRow}>
             <div className={styles.dateField}>
               <label className={styles.fieldLabel}>Từ ngày</label>
@@ -725,10 +711,6 @@ export default function ExportPage() {
       {mode === 'monthly' && (
         <div className={`card ${styles.exportCard} fade-in`}>
           <h2 className={styles.cardTitle}>Xuất điểm danh theo tháng</h2>
-          <p className={styles.cardDesc}>
-            File Excel tổng hợp ma trận toàn bộ các ngày trong tháng (1 đến 30/31),
-            thống kê chi tiết số buổi có mặt, muộn, vắng, phép và tính tỉ lệ chuyên cần (%) cho từng sinh viên.
-          </p>
           <div className={styles.actionRow}>
             <div className={styles.dateField}>
               <label className={styles.fieldLabel}>Chọn tháng</label>
