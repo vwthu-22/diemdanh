@@ -305,16 +305,20 @@ function WeeklyPreview({ from, to }: { from: string; to: string }) {
   }
 
   function countSummary(studentId: number) {
-    let present = 0, late = 0, absent = 0;
+    let present = 0, late = 0, absent = 0, excused = 0;
     dates.forEach((d) => {
       (['morning', 'afternoon'] as const).forEach((sess) => {
         const state = getSessionState(studentId, d, sess);
         if (state.status === 'present') present++;
         else if (state.status === 'late') late++;
+        else if (state.status === 'excused') {
+          excused++;
+          absent++;
+        }
         else if (state.isAbsent) absent++;
       });
     });
-    return { present, late, absent };
+    return { present, late, absent, excused };
   }
 
   return (
@@ -340,6 +344,7 @@ function WeeklyPreview({ from, to }: { from: string; to: string }) {
               <th rowSpan={2} className={`${styles.colSummary} ${styles.sectionDividerLeft}`} style={{ background: 'var(--color-present-bg)', color: 'var(--color-present)' }}>Có mặt</th>
               <th rowSpan={2} className={styles.colSummary} style={{ background: 'var(--color-late-bg)', color: 'var(--color-late)' }}>Muộn</th>
               <th rowSpan={2} className={styles.colSummary} style={{ background: 'var(--color-absent-bg)', color: 'var(--color-absent)' }}>Vắng</th>
+              <th rowSpan={2} className={styles.colSummary} style={{ background: 'var(--color-excused-bg)', color: 'var(--color-excused)' }}>Phép</th>
             </tr>
             <tr>
               {shownDates.map((d) => [
@@ -383,6 +388,7 @@ function WeeklyPreview({ from, to }: { from: string; to: string }) {
                   <td className={`${styles.colSummary} ${styles.sectionDividerLeft}`} style={{ color: 'var(--color-present)', fontWeight: 700 }}>{sum.present}</td>
                   <td className={styles.colSummary} style={{ color: 'var(--color-late)', fontWeight: 700 }}>{sum.late}</td>
                   <td className={styles.colSummary} style={{ color: 'var(--color-absent)', fontWeight: 700 }}>{sum.absent}</td>
+                  <td className={styles.colSummary} style={{ color: 'var(--color-excused)', fontWeight: 700 }}>{sum.excused}</td>
                 </tr>
               );
             })}

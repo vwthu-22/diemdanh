@@ -5,6 +5,7 @@ import * as ExcelJS from 'exceljs';
 import { Attendance, AttendanceSession, AttendanceStatus } from '../../entities/attendance.entity';
 import { Student } from '../../entities/student.entity';
 import { Settings, DEFAULT_SCHEDULE } from '../../entities/settings.entity';
+import { SettingsService } from '../settings/settings.service';
 import { getTodayVN, getCurrentTimeVN, compareTime } from '../../utils/geo.util';
 
 const STATUS_LABELS: Record<AttendanceStatus, string> = {
@@ -28,8 +29,7 @@ export class ExportService {
     private attendanceRepo: Repository<Attendance>,
     @InjectRepository(Student)
     private studentRepo: Repository<Student>,
-    @InjectRepository(Settings)
-    private settingsRepo: Repository<Settings>,
+    private settingsService: SettingsService,
   ) {}
 
   private getStatusLabel(status: AttendanceStatus | null | undefined): string {
@@ -285,13 +285,13 @@ export class ExportService {
       .where('a.date >= :from AND a.date <= :to', { from, to })
       .getMany();
 
-    const settings = await this.settingsRepo.findOne({ order: { id: 'ASC' } });
-    const schedule = settings?.schedule || DEFAULT_SCHEDULE;
+    const settings = await this.settingsService.getSettings();
+    const schedule = settings.schedule || DEFAULT_SCHEDULE;
     const today = getTodayVN();
     const currentTime = getCurrentTimeVN();
-    const startDate = settings?.startDate || today;
-    const morningLateEnd = settings?.morningLateEnd || '08:15';
-    const afternoonLateEnd = settings?.afternoonLateEnd || '13:45';
+    const startDate = settings.startDate || today;
+    const morningLateEnd = settings.morningLateEnd || '08:15';
+    const afternoonLateEnd = settings.afternoonLateEnd || '13:45';
 
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet('Tổng hợp tuần');
@@ -418,7 +418,10 @@ export class ExportService {
           mColor = this.getStatusColor(morningRec.status);
           if (morningRec.status === AttendanceStatus.PRESENT) cntPresent++;
           else if (morningRec.status === AttendanceStatus.LATE) cntLate++;
-          else if (morningRec.status === AttendanceStatus.EXCUSED) cntExcused++;
+          else if (morningRec.status === AttendanceStatus.EXCUSED) {
+            cntExcused++;
+            cntAbsent++;
+          }
           else if (morningRec.status === AttendanceStatus.ABSENT) cntAbsent++;
         } else if (morningScheduled && isMorningPassed) {
           // Scheduled session has ended but student was not checked in -> VẮNG!
@@ -437,7 +440,10 @@ export class ExportService {
           aColor = this.getStatusColor(afternoonRec.status);
           if (afternoonRec.status === AttendanceStatus.PRESENT) cntPresent++;
           else if (afternoonRec.status === AttendanceStatus.LATE) cntLate++;
-          else if (afternoonRec.status === AttendanceStatus.EXCUSED) cntExcused++;
+          else if (afternoonRec.status === AttendanceStatus.EXCUSED) {
+            cntExcused++;
+            cntAbsent++;
+          }
           else if (afternoonRec.status === AttendanceStatus.ABSENT) cntAbsent++;
         } else if (afternoonScheduled && isAfternoonPassed) {
           // Scheduled session has ended but student was not checked in -> VẮNG!
@@ -494,13 +500,13 @@ export class ExportService {
       .where('a.date >= :from AND a.date <= :to', { from, to })
       .getMany();
 
-    const settings = await this.settingsRepo.findOne({ order: { id: 'ASC' } });
-    const schedule = settings?.schedule || DEFAULT_SCHEDULE;
+    const settings = await this.settingsService.getSettings();
+    const schedule = settings.schedule || DEFAULT_SCHEDULE;
     const today = getTodayVN();
     const currentTime = getCurrentTimeVN();
-    const startDate = settings?.startDate || today;
-    const morningLateEnd = settings?.morningLateEnd || '08:15';
-    const afternoonLateEnd = settings?.afternoonLateEnd || '13:45';
+    const startDate = settings.startDate || today;
+    const morningLateEnd = settings.morningLateEnd || '08:15';
+    const afternoonLateEnd = settings.afternoonLateEnd || '13:45';
 
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet(`Tháng ${mStr}-${yStr}`);
