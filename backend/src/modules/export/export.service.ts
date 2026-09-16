@@ -153,7 +153,10 @@ export class ExportService {
 
       if (dailyStatus === AttendanceStatus.PRESENT) present++;
       else if (dailyStatus === AttendanceStatus.LATE) late++;
-      else if (dailyStatus === AttendanceStatus.EXCUSED) excused++;
+      else if (dailyStatus === AttendanceStatus.EXCUSED) {
+        excused++;
+        absent++;
+      }
       else absent++;
 
       const bgAlternate = idx % 2 === 0 ? 'FFF8FAFC' : 'FFFFFFFF';
@@ -628,7 +631,10 @@ export class ExportService {
           mColor = this.getStatusColor(morningRec.status);
           if (morningRec.status === AttendanceStatus.PRESENT) cntPresent++;
           else if (morningRec.status === AttendanceStatus.LATE) cntLate++;
-          else if (morningRec.status === AttendanceStatus.EXCUSED) cntExcused++;
+          else if (morningRec.status === AttendanceStatus.EXCUSED) {
+            cntExcused++;
+            cntAbsent++;
+          }
           else if (morningRec.status === AttendanceStatus.ABSENT) cntAbsent++;
         } else if (morningScheduled && isMorningPassed) {
           mLabel = '✗';
@@ -646,7 +652,10 @@ export class ExportService {
           aColor = this.getStatusColor(afternoonRec.status);
           if (afternoonRec.status === AttendanceStatus.PRESENT) cntPresent++;
           else if (afternoonRec.status === AttendanceStatus.LATE) cntLate++;
-          else if (afternoonRec.status === AttendanceStatus.EXCUSED) cntExcused++;
+          else if (afternoonRec.status === AttendanceStatus.EXCUSED) {
+            cntExcused++;
+            cntAbsent++;
+          }
           else if (afternoonRec.status === AttendanceStatus.ABSENT) cntAbsent++;
         } else if (afternoonScheduled && isAfternoonPassed) {
           aLabel = '✗';
@@ -667,7 +676,7 @@ export class ExportService {
       this.styleDataCell(sheet.getCell(rowNum, dataCol + 3), String(cntExcused), STATUS_COLORS[AttendanceStatus.EXCUSED], true);
 
       // Chuyên cần (%)
-      const rate = totalScheduled > 0 ? Math.round(((cntPresent + cntLate * 0.8 + cntExcused * 0.5) / totalScheduled) * 100) : 100;
+      const rate = totalScheduled > 0 ? Math.round(((cntPresent + cntLate * 0.8) / totalScheduled) * 100) : 100;
       const rateColor = rate >= 90 ? STATUS_COLORS[AttendanceStatus.PRESENT] : rate >= 70 ? STATUS_COLORS[AttendanceStatus.LATE] : STATUS_COLORS[AttendanceStatus.ABSENT];
       this.styleDataCell(sheet.getCell(rowNum, dataCol + 4), `${rate}%`, rateColor, true);
 

@@ -127,15 +127,6 @@ export default function SchedulePage() {
           <div className={styles.headerBadge}>Kỳ 1 • Năm học 2026</div>
           <h1 className={styles.title}>Thời Khóa Biểu CQP22</h1>
         </div>
-
-        <div className={styles.headerActions}>
-          <Link href="/" className="btn btn-primary" style={{ padding: '8px 14px', fontSize: '0.85rem' }} id="btn-goto-checkin">
-            Vào điểm danh
-          </Link>
-          <Link href="/admin" className="btn btn-secondary" style={{ padding: '8px 14px', fontSize: '0.85rem' }} id="btn-goto-admin">
-            Quản trị
-          </Link>
-        </div>
       </header>
 
       {/* Banner Hôm nay (nếu có tiết hoặc không có tiết) */}
@@ -471,6 +462,26 @@ export default function SchedulePage() {
           </div>
         </div>
       )}
+
+      {/* Bottom Sticky Navigation Bar */}
+      <footer className={styles.bottomBar}>
+        <div className={styles.bottomBarInner}>
+          <Link
+            href="/"
+            className={styles.bottomBtnPrimary}
+            id="btn-footer-checkin"
+          >
+            Vào điểm danh
+          </Link>
+          <Link
+            href="/admin"
+            className={styles.bottomBtnSecondary}
+            id="btn-footer-admin"
+          >
+            Quản trị
+          </Link>
+        </div>
+      </footer>
     </div>
   );
 }
