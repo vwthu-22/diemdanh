@@ -13,6 +13,7 @@ import {
 } from '../../entities/attendance.entity';
 import { Student } from '../../entities/student.entity';
 import { Settings, DEFAULT_SCHEDULE } from '../../entities/settings.entity';
+import { SettingsService } from '../settings/settings.service';
 import { CheckInDto } from './dto/checkin.dto';
 import {
   haversineDistance,
@@ -29,57 +30,11 @@ export class AttendanceService {
     private attendanceRepo: Repository<Attendance>,
     @InjectRepository(Student)
     private studentRepo: Repository<Student>,
-    @InjectRepository(Settings)
-    private settingsRepo: Repository<Settings>,
+    private settingsService: SettingsService,
   ) {}
 
   private async getSettings(): Promise<Settings> {
-    try {
-      let settings = await this.settingsRepo.findOne({ order: { id: 'ASC' } });
-      if (!settings) {
-        settings = this.settingsRepo.create({
-          schoolLat: 20.868382,
-          schoolLng: 105.857279,
-          radiusMeters: 100,
-          morningStart: '07:30',
-          morningOnTimeEnd: '07:45',
-          morningLateEnd: '08:15',
-          afternoonStart: '13:00',
-          afternoonOnTimeEnd: '13:15',
-          afternoonLateEnd: '13:45',
-          startDate: '2026-09-15',
-          schedule: DEFAULT_SCHEDULE,
-        });
-        settings = await this.settingsRepo.save(settings);
-      }
-      if (!settings.schedule) {
-        settings.schedule = DEFAULT_SCHEDULE;
-      }
-      if (typeof settings.schedule === 'string') {
-        try {
-          settings.schedule = JSON.parse(settings.schedule);
-        } catch {
-          settings.schedule = DEFAULT_SCHEDULE;
-        }
-      }
-      return settings;
-    } catch (err) {
-      console.error('Error in getSettings (AttendanceService):', err);
-      return {
-        id: 1,
-        schoolLat: 20.868382,
-        schoolLng: 105.857279,
-        radiusMeters: 100,
-        morningStart: '07:30',
-        morningOnTimeEnd: '07:45',
-        morningLateEnd: '08:15',
-        afternoonStart: '13:00',
-        afternoonOnTimeEnd: '13:15',
-        afternoonLateEnd: '13:45',
-        startDate: '2026-09-15',
-        schedule: DEFAULT_SCHEDULE,
-      } as Settings;
-    }
+    return this.settingsService.getSettings();
   }
 
   /**

@@ -9,6 +9,7 @@ import {
   Param,
   UseGuards,
   ValidationPipe,
+  Header,
 } from '@nestjs/common';
 import { AttendanceService } from './attendance.service';
 import { CheckInDto } from './dto/checkin.dto';
@@ -22,9 +23,12 @@ export class AttendanceController {
   // ─── Public endpoints (sinh viên) ─────────────────────────────────────────
 
   @Get('attendance/session-status')
+  @Header('Cache-Control', 'no-store, no-cache, must-revalidate')
+  @Header('Pragma', 'no-cache')
   getSessionStatus() {
     return this.attendanceService.getSessionStatus();
   }
+
 
   @Get('attendance/my-status')
   getMyStatus(@Query('deviceId') deviceId: string, @Query('date') date: string) {
