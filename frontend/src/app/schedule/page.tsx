@@ -124,8 +124,8 @@ export default function SchedulePage() {
       {/* Header gọn gàng, tối ưu mobile */}
       <header className={styles.header}>
         <div className={styles.headerInfo}>
-          <div className={styles.headerBadge}>Kỳ 1 • Năm học 2026</div>
           <h1 className={styles.title}>Thời Khóa Biểu CQP22</h1>
+          <div className={styles.headerBadge}>Kỳ 1 • Năm học 2026</div>
         </div>
       </header>
 

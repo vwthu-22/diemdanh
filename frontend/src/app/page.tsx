@@ -444,11 +444,9 @@ export default function StudentPage() {
       <footer className={styles.bottomBar}>
         <div className={styles.bottomBarInner}>
           <Link href="/" className={`${styles.bottomNavBtn} ${styles.bottomNavBtnActive}`} id="btn-bottom-checkin">
-            <span className={styles.bottomNavIcon}>📋</span>
             <span>Điểm danh</span>
           </Link>
           <Link href="/schedule" className={styles.bottomNavBtn} id="btn-bottom-schedule">
-            <span className={styles.bottomNavIcon}>📅</span>
             <span>Thời khóa biểu</span>
           </Link>
         </div>

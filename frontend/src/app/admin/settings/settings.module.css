@@ -473,7 +473,7 @@
 .stickySaveBar {
   position: fixed;
   bottom: 0;
-  left: 220px;
+  left: 240px;
   right: 0;
   background: rgba(10, 15, 30, 0.92);
   backdrop-filter: blur(16px);
@@ -644,40 +644,49 @@
   }
 
   .stickySaveBar {
-    position: static;
-    left: auto;
-    right: auto;
-    bottom: auto;
-    margin-top: 20px;
-    margin-bottom: 16px;
-    padding: 16px;
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--color-border);
-    background: rgba(13, 21, 41, 0.9);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: calc(52px + env(safe-area-inset-bottom, 0px));
+    margin: 0;
+    padding: 10px 16px;
+    border-radius: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    background: rgba(10, 15, 30, 0.95);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 -8px 25px rgba(0, 0, 0, 0.5);
     flex-direction: column;
-    gap: 12px;
-    z-index: 10;
+    gap: 8px;
+    z-index: 90;
   }
 
   .saveBarLeft {
     width: 100%;
+    display: flex;
     justify-content: center;
   }
 
   .toastMsg {
-    font-size: 0.82rem;
-    padding: 6px 12px;
+    font-size: 0.8rem;
+    padding: 6px 14px;
+    border-radius: 999px;
     width: 100%;
     justify-content: center;
     text-align: center;
+    box-sizing: border-box;
   }
 
   .saveBtn {
     width: 100%;
     justify-content: center;
-    padding: 13px 20px;
-    font-size: 0.95rem;
+    padding: 12px 18px;
+    font-size: 0.92rem;
+    font-weight: 700;
+    border-radius: 10px;
   }
 
   .dangerActions {

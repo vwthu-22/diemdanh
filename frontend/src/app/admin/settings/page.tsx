@@ -199,15 +199,6 @@ export default function SettingsPage() {
           <h1 className={styles.pageTitle}>Cài đặt hệ thống</h1>
           <p className={styles.pageSubtitle}>Cấu hình định vị GPS, thời gian điểm danh & thời khóa biểu</p>
         </div>
-        <button
-          type="button"
-          className={styles.headerSaveBtn}
-          onClick={save}
-          disabled={loading}
-          id="settings-header-save"
-        >
-          {loading ? <div className="spinner" /> : '💾 Lưu'}
-        </button>
       </div>
 
       {/* Top 2-Column Grid */}
