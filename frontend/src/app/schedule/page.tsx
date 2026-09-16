@@ -480,6 +480,13 @@ export default function SchedulePage() {
           >
             <span>Thời khóa biểu</span>
           </Link>
+          <Link
+            href="/about"
+            className={styles.bottomNavBtn}
+            id="btn-footer-about"
+          >
+            <span>Về chúng tôi</span>
+          </Link>
         </div>
       </footer>
     </div>

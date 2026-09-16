@@ -449,6 +449,9 @@ export default function StudentPage() {
           <Link href="/schedule" className={styles.bottomNavBtn} id="btn-bottom-schedule">
             <span>Thời khóa biểu</span>
           </Link>
+          <Link href="/about" className={styles.bottomNavBtn} id="btn-bottom-about">
+            <span>Về chúng tôi</span>
+          </Link>
         </div>
       </footer>
     </div>
