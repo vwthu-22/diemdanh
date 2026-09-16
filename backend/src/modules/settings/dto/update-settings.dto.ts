@@ -3,6 +3,9 @@ import { Type } from 'class-transformer';
 
 export class UpdateSettingsDto {
   @IsOptional()
+  id?: number;
+
+  @IsOptional()
   @IsNumber()
   @Type(() => Number)
   schoolLat?: number;
