@@ -16,31 +16,30 @@ const STUDENTS = [
   { orderNum: 6, name: 'Bùi Tùng Dương', dob: '01/03/2008' },
   { orderNum: 7, name: 'Nguyễn Quốc Đạt', dob: '06/11/2008' },
   { orderNum: 8, name: 'Nguyễn Tiến Đạt', dob: '22/04/2008' },
-  { orderNum: 9, name: 'Ngô Quang Đức', dob: '12/11/2006' },
-  { orderNum: 10, name: 'Nguyễn Đức Hoàng Hiệp', dob: '10/01/2008' },
-  { orderNum: 11, name: 'Nguyễn Công Hòa', dob: '02/12/2008' },
-  { orderNum: 12, name: 'Phạm Nhật Hoàng', dob: '18/04/2003' },
-  { orderNum: 13, name: 'Lê Đặng Trung Kiên', dob: '30/11/2008' },
-  { orderNum: 14, name: 'Cung Tuấn Kiệt', dob: '16/09/2008' },
-  { orderNum: 15, name: 'Nguyễn Nhật Anh Kiệt', dob: '27/06/2006' },
-  { orderNum: 16, name: 'Ngô Minh Long', dob: '04/10/2004' },
-  { orderNum: 17, name: 'Nguyễn Công Minh', dob: '19/07/2008' },
-  { orderNum: 18, name: 'Nguyễn Đức Minh', dob: '26/05/2008' },
-  { orderNum: 19, name: 'Nguyễn Xuân Minh', dob: '25/11/2007' },
-  { orderNum: 20, name: 'Hà Hải Nam', dob: '07/08/2002' },
-  { orderNum: 21, name: 'Trần Bảo Nam', dob: '12/11/2008' },
-  { orderNum: 22, name: 'Nguyễn Hữu Ngọc', dob: '20/02/2006' },
-  { orderNum: 23, name: 'Trần Đức Phát', dob: '07/02/2008' },
-  { orderNum: 24, name: 'Thân Văn Phong', dob: '11/04/1999' },
-  { orderNum: 25, name: 'Nguyễn Hữu Quang', dob: '22/11/2004' },
-  { orderNum: 26, name: 'Lê Văn Thắng', dob: '04/02/2008' },
-  { orderNum: 27, name: 'Nguyễn Văn Thu', dob: '16/09/2004' },
-  { orderNum: 28, name: 'Đàm Quốc Triệu', dob: '29/01/2004' },
-  { orderNum: 29, name: 'Trần Quốc Triệu', dob: '15/11/2006' },
-  { orderNum: 30, name: 'Nguyễn Đức Trung', dob: '25/07/2007' },
-  { orderNum: 31, name: 'Nguyễn Đình Tuấn', dob: '19/03/2008' },
-  { orderNum: 32, name: 'Hà Xuân Tùng', dob: '13/01/2001' },
-  { orderNum: 33, name: 'Phạm Xuân Tùng', dob: '05/04/2008' },
+  { orderNum: 9, name: 'Nguyễn Đức Hoàng Hiệp', dob: '10/01/2008' },
+  { orderNum: 10, name: 'Nguyễn Công Hòa', dob: '02/12/2008' },
+  { orderNum: 11, name: 'Phạm Nhật Hoàng', dob: '18/04/2003' },
+  { orderNum: 12, name: 'Lê Đặng Trung Kiên', dob: '30/11/2008' },
+  { orderNum: 13, name: 'Cung Tuấn Kiệt', dob: '16/09/2008' },
+  { orderNum: 14, name: 'Nguyễn Nhật Anh Kiệt', dob: '27/06/2006' },
+  { orderNum: 15, name: 'Ngô Minh Long', dob: '04/10/2004' },
+  { orderNum: 16, name: 'Nguyễn Công Minh', dob: '19/07/2008' },
+  { orderNum: 17, name: 'Nguyễn Đức Minh', dob: '26/05/2008' },
+  { orderNum: 18, name: 'Nguyễn Xuân Minh', dob: '25/11/2007' },
+  { orderNum: 19, name: 'Hà Hải Nam', dob: '07/08/2002' },
+  { orderNum: 20, name: 'Trần Bảo Nam', dob: '12/11/2008' },
+  { orderNum: 21, name: 'Nguyễn Hữu Ngọc', dob: '20/02/2006' },
+  { orderNum: 22, name: 'Trần Đức Phát', dob: '07/02/2008' },
+  { orderNum: 23, name: 'Thân Văn Phong', dob: '11/04/1999' },
+  { orderNum: 24, name: 'Nguyễn Hữu Quang', dob: '22/11/2004' },
+  { orderNum: 25, name: 'Lê Văn Thắng', dob: '04/02/2008' },
+  { orderNum: 26, name: 'Nguyễn Văn Thu', dob: '16/09/2004' },
+  { orderNum: 27, name: 'Đàm Quốc Triệu', dob: '29/01/2004' },
+  { orderNum: 28, name: 'Trần Quốc Triệu', dob: '15/11/2006' },
+  { orderNum: 29, name: 'Nguyễn Đức Trung', dob: '25/07/2007' },
+  { orderNum: 30, name: 'Nguyễn Đình Tuấn', dob: '19/03/2008' },
+  { orderNum: 31, name: 'Hà Xuân Tùng', dob: '13/01/2001' },
+  { orderNum: 32, name: 'Phạm Xuân Tùng', dob: '05/04/2008' },
 ];
 
 @Injectable()
@@ -58,6 +57,18 @@ export class SeedService implements OnApplicationBootstrap {
   }
 
   private async seedStudents() {
+    const validNames = STUDENTS.map((s) => s.name);
+
+    // 1. Tự động xóa những sinh viên đã bị xóa khỏi danh sách chuẩn
+    const allDbStudents = await this.studentRepo.find();
+    for (const dbStudent of allDbStudents) {
+      if (!validNames.includes(dbStudent.name)) {
+        await this.studentRepo.delete(dbStudent.id);
+        console.log(`🗑️ Removed deleted student: ${dbStudent.name} (id: ${dbStudent.id})`);
+      }
+    }
+
+    // 2. Thêm mới hoặc cập nhật STT, ngày sinh theo thứ tự chuẩn
     for (const s of STUDENTS) {
       const exists = await this.studentRepo.findOne({
         where: { name: s.name },
@@ -87,3 +98,4 @@ export class SeedService implements OnApplicationBootstrap {
     console.log('✅ Seeded default settings');
   }
 }
+
