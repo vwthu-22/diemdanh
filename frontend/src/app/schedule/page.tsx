@@ -325,6 +325,8 @@ export default function SchedulePage() {
                     const lessons = getWeekDayLessons(weekNum, day.num);
                     const dayDate = getWeekDayDate(weekNum, day.num);
                     const isToday = dayDate.dateStr === todayStr;
+                    const morningLessons = lessons.filter((l) => l.session === 'morning');
+                    const afternoonLessons = lessons.filter((l) => l.session === 'afternoon');
 
                     return (
                       <div
@@ -345,45 +347,101 @@ export default function SchedulePage() {
                               <span>Nghỉ</span>
                             </div>
                           ) : (
-                            lessons.map((l) => (
-                              <div
-                                key={l.id}
-                                className={styles.lessonCard}
-                                style={{ '--card-accent': l.badgeColor } as any}
-                              >
-                                <div className={styles.lessonTopRow}>
-                                  <span
-                                    className={`${styles.sessionBadge} ${l.session === 'morning' ? styles.sessionMorning : styles.sessionAfternoon
-                                      }`}
+                            <>
+                              {/* Ca Sáng */}
+                              {morningLessons.length > 0 ? (
+                                morningLessons.map((l) => (
+                                  <div
+                                    key={l.id}
+                                    className={styles.lessonCard}
+                                    style={{ '--card-accent': l.badgeColor } as any}
                                   >
-                                    {l.sessionLabel} • Tiết {l.periods}
-                                  </span>
-                                  <span className={styles.roomBadge}>
-                                    P.{l.room}
-                                  </span>
-                                </div>
+                                    <div className={styles.lessonTopRow}>
+                                      <span
+                                        className={`${styles.sessionBadge} ${styles.sessionMorning}`}
+                                      >
+                                        {l.sessionLabel} • Tiết {l.periods}
+                                      </span>
+                                      <span className={styles.roomBadge}>
+                                        P.{l.room}
+                                      </span>
+                                    </div>
 
-                                <div className={styles.lessonSubject}>
-                                  {l.subject}
-                                </div>
+                                    <div className={styles.lessonSubject}>
+                                      {l.subject}
+                                    </div>
 
-                                <div className={styles.lessonMetaGrid}>
-                                  <div className={styles.lessonMetaItem}>
-                                    <span className={styles.metaLabel}>GV:</span>
-                                    <span className={styles.teacherName}>{l.teacher}</span>
+                                    <div className={styles.lessonMetaGrid}>
+                                      <div className={styles.lessonMetaItem}>
+                                        <span className={styles.metaLabel}>GV:</span>
+                                        <span className={styles.teacherName}>{l.teacher}</span>
+                                      </div>
+                                      <div className={styles.lessonMetaItem}>
+                                        <span className={styles.metaLabel}>Thời lượng:</span>
+                                        <span>{l.periodCount} tiết ({l.format})</span>
+                                      </div>
+                                    </div>
+
+                                    <div className={styles.lessonFooter}>
+                                      <span>{l.credits} Tín chỉ</span>
+                                      <span>Tổng: {l.totalPeriods} tiết</span>
+                                    </div>
                                   </div>
-                                  <div className={styles.lessonMetaItem}>
-                                    <span className={styles.metaLabel}>Thời lượng:</span>
-                                    <span>{l.periodCount} tiết ({l.format})</span>
-                                  </div>
+                                ))
+                              ) : (
+                                <div className={styles.emptySessionSlot}>
+                                  <span className={styles.emptySessionBadge}>SÁNG</span>
+                                  <span className={styles.emptySessionText}>Không có tiết</span>
                                 </div>
+                              )}
 
-                                <div className={styles.lessonFooter}>
-                                  <span>{l.credits} Tín chỉ</span>
-                                  <span>Tổng: {l.totalPeriods} tiết</span>
+                              {/* Ca Chiều */}
+                              {afternoonLessons.length > 0 ? (
+                                afternoonLessons.map((l) => (
+                                  <div
+                                    key={l.id}
+                                    className={styles.lessonCard}
+                                    style={{ '--card-accent': l.badgeColor } as any}
+                                  >
+                                    <div className={styles.lessonTopRow}>
+                                      <span
+                                        className={`${styles.sessionBadge} ${styles.sessionAfternoon}`}
+                                      >
+                                        {l.sessionLabel} • Tiết {l.periods}
+                                      </span>
+                                      <span className={styles.roomBadge}>
+                                        P.{l.room}
+                                      </span>
+                                    </div>
+
+                                    <div className={styles.lessonSubject}>
+                                      {l.subject}
+                                    </div>
+
+                                    <div className={styles.lessonMetaGrid}>
+                                      <div className={styles.lessonMetaItem}>
+                                        <span className={styles.metaLabel}>GV:</span>
+                                        <span className={styles.teacherName}>{l.teacher}</span>
+                                      </div>
+                                      <div className={styles.lessonMetaItem}>
+                                        <span className={styles.metaLabel}>Thời lượng:</span>
+                                        <span>{l.periodCount} tiết ({l.format})</span>
+                                      </div>
+                                    </div>
+
+                                    <div className={styles.lessonFooter}>
+                                      <span>{l.credits} Tín chỉ</span>
+                                      <span>Tổng: {l.totalPeriods} tiết</span>
+                                    </div>
+                                  </div>
+                                ))
+                              ) : (
+                                <div className={styles.emptySessionSlot}>
+                                  <span className={styles.emptySessionBadge}>CHIỀU</span>
+                                  <span className={styles.emptySessionText}>Không có tiết</span>
                                 </div>
-                              </div>
-                            ))
+                              )}
+                            </>
                           )}
                         </div>
                       </div>
