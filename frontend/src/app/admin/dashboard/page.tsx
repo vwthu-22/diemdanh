@@ -59,6 +59,12 @@ export default function DashboardPage() {
     fetchData();
   }, [fetchData]);
 
+  // Auto-refresh every 60s so data stays live without manual reload
+  useEffect(() => {
+    const interval = setInterval(() => fetchData(true), 60_000);
+    return () => clearInterval(interval);
+  }, [fetchData]);
+
   useEffect(() => {
     api.get<Settings>('/settings').then((r) => setSettings(r.data)).catch(() => {});
   }, []);
@@ -182,21 +188,26 @@ export default function DashboardPage() {
 
   const [viewSession, setViewSession] = useState<'all' | 'morning' | 'afternoon'>('all');
 
-  const isSessionClosed = useCallback((session: 'morning' | 'afternoon') => {
+  // Compute time snapshot once per render, not per-row (avoids 64x Date object creation)
+  const timeSnapshot = useMemo(() => {
     const now = new Date();
     const currentToday = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(now);
-    if (date < currentToday) return true; // Quá khứ đã đóng cổng
-    if (date > currentToday) return false; // Tương lai chưa tới giờ
-
     const currentTime = new Intl.DateTimeFormat('en-GB', {
       timeZone: 'Asia/Ho_Chi_Minh',
       hour: '2-digit',
       minute: '2-digit',
       hour12: false,
     }).format(now);
+    return { currentToday, currentTime };
+  }, []);
+
+  const isSessionClosed = useCallback((session: 'morning' | 'afternoon') => {
+    const { currentToday, currentTime } = timeSnapshot;
+    if (date < currentToday) return true;
+    if (date > currentToday) return false;
     const lateEnd = session === 'morning' ? (settings?.morningLateEnd || '08:15') : (settings?.afternoonLateEnd || '13:45');
     return currentTime > lateEnd;
-  }, [date, settings]);
+  }, [date, settings, timeSnapshot]);
 
   const getDayOfWeekKey = useCallback((dateStr: string) => {
     const d = new Date(dateStr + 'T00:00:00+07:00');
