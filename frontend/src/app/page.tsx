@@ -81,9 +81,20 @@ export default function StudentPage() {
 
   // Load students
   useEffect(() => {
-    api.get<Student[]>('/students').then((r) => setStudents(r.data));
-    const stored = getStoredStudent();
-    if (stored) setSelectedStudent(stored);
+    api.get<Student[]>('/students').then((r) => {
+      setStudents(r.data);
+      const stored = getStoredStudent();
+      if (stored) {
+        // Validate if stored student is still in the valid student list
+        const found = r.data.find((s) => s.name === stored.name || s.id === stored.id);
+        if (found) {
+          setSelectedStudent({ id: found.id, name: found.name });
+        } else {
+          localStorage.removeItem('cqp22_student');
+          setSelectedStudent(null);
+        }
+      }
+    });
     checkDeviceBinding();
   }, [checkDeviceBinding]);
 

@@ -3,9 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Student } from '../entities/student.entity';
 import { Settings } from '../entities/settings.entity';
-import * as bcrypt from 'bcrypt';
-import * as fs from 'fs';
-import * as path from 'path';
+import { Attendance } from '../entities/attendance.entity';
 
 const STUDENTS = [
   { orderNum: 1, name: 'Đoàn Ngọc Khánh An', dob: '07/12/2007' },
@@ -49,6 +47,8 @@ export class SeedService implements OnApplicationBootstrap {
     private studentRepo: Repository<Student>,
     @InjectRepository(Settings)
     private settingsRepo: Repository<Settings>,
+    @InjectRepository(Attendance)
+    private attendanceRepo: Repository<Attendance>,
   ) {}
 
   async onApplicationBootstrap() {
@@ -59,32 +59,48 @@ export class SeedService implements OnApplicationBootstrap {
   private async seedStudents() {
     const validNames = STUDENTS.map((s) => s.name);
 
-    // 1. Tự động xóa những sinh viên đã bị xóa khỏi danh sách chuẩn
-    const allDbStudents = await this.studentRepo.find();
-    for (const dbStudent of allDbStudents) {
-      if (!validNames.includes(dbStudent.name)) {
-        await this.studentRepo.delete(dbStudent.id);
-        console.log(`🗑️ Removed deleted student: ${dbStudent.name} (id: ${dbStudent.id})`);
+    // 1. Tự động xóa những sinh viên đã bị xóa khỏi danh sách chuẩn (kèm xóa lượt điểm danh để tránh lỗi khóa ngoại)
+    try {
+      const allDbStudents = await this.studentRepo.find();
+      for (const dbStudent of allDbStudents) {
+        if (!validNames.includes(dbStudent.name)) {
+          // Xóa tất cả điểm danh liên quan trước
+          await this.attendanceRepo.delete({ studentId: dbStudent.id }).catch(() => {});
+          await this.studentRepo.query(`DELETE FROM "attendances" WHERE "student_id" = $1`, [dbStudent.id]).catch(() => {});
+          await this.studentRepo.query(`DELETE FROM attendances WHERE student_id = ?`, [dbStudent.id]).catch(() => {});
+
+          // Xóa sinh viên
+          await this.studentRepo.delete(dbStudent.id).catch(() => {});
+          await this.studentRepo.query(`DELETE FROM "students" WHERE "id" = $1`, [dbStudent.id]).catch(() => {});
+          await this.studentRepo.query(`DELETE FROM students WHERE id = ?`, [dbStudent.id]).catch(() => {});
+          console.log(`🗑️ Removed deleted student: ${dbStudent.name} (id: ${dbStudent.id})`);
+        }
       }
+    } catch (err) {
+      console.error('Error cleaning up deleted students:', err);
     }
 
     // 2. Thêm mới hoặc cập nhật STT, ngày sinh theo thứ tự chuẩn
     for (const s of STUDENTS) {
-      const exists = await this.studentRepo.findOne({
-        where: { name: s.name },
-      });
-      if (!exists) {
-        const student = this.studentRepo.create(s);
-        await this.studentRepo.save(student);
-        console.log(`✅ Seeded student #${s.orderNum}: ${s.name}`);
-      } else {
-        // Tự động đồng bộ và cập nhật lại STT (orderNum) / Ngày sinh (dob) theo danh sách mới
-        if (exists.orderNum !== s.orderNum || exists.dob !== s.dob) {
-          exists.orderNum = s.orderNum;
-          exists.dob = s.dob;
-          await this.studentRepo.save(exists);
-          console.log(`🔄 Updated student #${s.orderNum}: ${s.name} (${s.dob})`);
+      try {
+        const exists = await this.studentRepo.findOne({
+          where: { name: s.name },
+        });
+        if (!exists) {
+          const student = this.studentRepo.create(s);
+          await this.studentRepo.save(student);
+          console.log(`✅ Seeded student #${s.orderNum}: ${s.name}`);
+        } else {
+          // Tự động đồng bộ và cập nhật lại STT (orderNum) / Ngày sinh (dob) theo danh sách mới
+          if (exists.orderNum !== s.orderNum || exists.dob !== s.dob) {
+            exists.orderNum = s.orderNum;
+            exists.dob = s.dob;
+            await this.studentRepo.save(exists);
+            console.log(`🔄 Updated student #${s.orderNum}: ${s.name} (${s.dob})`);
+          }
         }
+      } catch (err) {
+        console.error(`Error syncing student ${s.name}:`, err);
       }
     }
   }

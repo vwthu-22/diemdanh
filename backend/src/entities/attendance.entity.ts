@@ -31,7 +31,7 @@ export class Attendance {
   @Column({ name: 'student_id' })
   studentId: number;
 
-  @ManyToOne(() => Student)
+  @ManyToOne(() => Student, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'student_id' })
   student: Student;
 
