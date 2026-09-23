@@ -1,0 +1,263 @@
+.page {
+  padding: 28px 24px 48px;
+  max-width: 860px;
+  margin: 0 auto;
+  position: relative;
+}
+
+/* ── Toast ── */
+.toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+  animation: slideDown 0.25s ease;
+  white-space: nowrap;
+}
+.toastSuccess { background: #16a34a; color: #fff; }
+.toastError   { background: #dc2626; color: #fff; }
+@keyframes slideDown {
+  from { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ── Header ── */
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin: 0 0 4px;
+}
+.subtitle {
+  font-size: 0.82rem;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+.addBtn {
+  flex-shrink: 0;
+  padding: 9px 18px;
+  border-radius: 9px;
+  background: #3b82f6;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.86rem;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.12s ease;
+  font-family: inherit;
+}
+.addBtn:hover { background: #2563eb; transform: translateY(-1px); }
+
+/* ── Add Card ── */
+.addCard {
+  background: rgba(59, 130, 246, 0.07);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 20px;
+  animation: fadeIn 0.2s ease;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.addCardTitle {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #60a5fa;
+  margin: 0 0 16px;
+}
+.formGrid {
+  display: grid;
+  grid-template-columns: 80px 1fr 140px;
+  gap: 12px;
+}
+.formGroup { display: flex; flex-direction: column; gap: 5px; }
+.label {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.input, .inlineInput {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  padding: 9px 12px;
+  color: var(--color-text-primary);
+  font-size: 0.88rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+.input:focus, .inlineInput:focus {
+  border-color: #3b82f6;
+  background: rgba(59,130,246,0.08);
+}
+.addActions { margin-top: 14px; }
+.saveBtn {
+  padding: 8px 20px;
+  border-radius: 8px;
+  background: #16a34a;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.84rem;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+.saveBtn:hover:not(:disabled) { background: #15803d; }
+.saveBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Search Bar ── */
+.searchBar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.searchInput {
+  flex: 1;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  padding: 10px 16px;
+  color: var(--color-text-primary);
+  font-size: 0.88rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.searchInput:focus { border-color: #3b82f6; }
+.searchInput::placeholder { color: var(--color-text-muted); }
+.searchCount {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+/* ── Loading ── */
+.loadingBox {
+  text-align: center;
+  padding: 48px;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+/* ── Table ── */
+.tableWrap {
+  overflow-x: auto;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.07);
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.th {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  background: rgba(255,255,255,0.03);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.tr {
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  transition: background 0.12s ease;
+}
+.tr:last-child { border-bottom: none; }
+.tr:hover { background: rgba(255,255,255,0.03); }
+.trEditing { background: rgba(59,130,246,0.06) !important; }
+.td {
+  padding: 11px 16px;
+  vertical-align: middle;
+}
+.orderNum {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+.studentName {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+.dob {
+  font-size: 0.84rem;
+  color: var(--color-text-secondary);
+}
+.empty {
+  text-align: center;
+  padding: 32px;
+  color: var(--color-text-muted);
+  font-size: 0.88rem;
+}
+
+/* ── Row Actions ── */
+.actions {
+  display: flex;
+  gap: 6px;
+}
+.editBtn, .deleteBtn, .confirmBtn, .cancelBtn {
+  padding: 6px 14px;
+  border-radius: 7px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+.editBtn {
+  background: rgba(59,130,246,0.15);
+  color: #60a5fa;
+}
+.editBtn:hover { background: rgba(59,130,246,0.25); }
+.deleteBtn {
+  background: rgba(239,68,68,0.12);
+  color: #f87171;
+}
+.deleteBtn:hover:not(:disabled) { background: rgba(239,68,68,0.22); }
+.deleteBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+.confirmBtn {
+  background: #16a34a;
+  color: #fff;
+}
+.confirmBtn:hover:not(:disabled) { background: #15803d; }
+.confirmBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+.cancelBtn {
+  background: rgba(255,255,255,0.08);
+  color: var(--color-text-secondary);
+}
+.cancelBtn:hover { background: rgba(255,255,255,0.14); }
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .page { padding: 20px 14px 80px; }
+  .header { flex-direction: column; }
+  .formGrid { grid-template-columns: 70px 1fr; }
+  .formGrid > :last-child { grid-column: span 2; }
+  .th:nth-child(3), .td:nth-child(3) { display: none; }
+}
