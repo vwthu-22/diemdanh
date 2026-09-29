@@ -10,14 +10,17 @@
 
 .loginCard {
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
   padding: 40px 32px;
   text-align: center;
 }
 
-.icon {
+.logoWrap {
+  margin-bottom: 12px;
+}
+
+.logoIcon {
   font-size: 3rem;
-  margin-bottom: 16px;
   filter: drop-shadow(0 0 16px rgba(59,130,246,0.4));
 }
 
@@ -30,7 +33,63 @@
 .subtitle {
   color: var(--color-text-muted);
   font-size: 0.9rem;
-  margin-bottom: 32px;
+  margin-bottom: 28px;
+}
+
+/* Google Button */
+.googleBtn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px 20px;
+  background: #fff;
+  color: #3c4043;
+  border: 1.5px solid #dadce0;
+  border-radius: var(--radius-md);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s, border-color 0.2s;
+  font-family: inherit;
+}
+
+.googleBtn:hover:not(:disabled) {
+  background: #f8f9fa;
+  border-color: #bbb;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+}
+
+.googleBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.googleIcon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+/* Divider */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.dividerLine {
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
+.dividerText {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
 }
 
 .form {
@@ -72,3 +131,4 @@
 }
 
 .backLink:hover { color: var(--color-primary-light); }
+
