@@ -1,10 +1,12 @@
 'use client';
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, lazy, Suspense } from 'react';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { getLessonsByDate } from '@/data/schedule';
 import { Student, SessionStatusResponse, SessionInfo, AttendanceRecord, AttendanceSession } from '@/types';
 import styles from './page.module.css';
+
+const FaceVerifyModal = lazy(() => import('./FaceVerifyModal'));
 
 const SESSION_LABELS: Record<AttendanceSession, string> = {
   morning: 'Buổi Sáng',
@@ -38,12 +40,14 @@ function getStoredStudent(): { id: number; name: string } | null {
 export default function StudentPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<{ id: number; name: string } | null>(null);
+  const [selectedStudentFull, setSelectedStudentFull] = useState<Student | null>(null);
   const [showPicker, setShowPicker] = useState(false);
   const [sessionStatus, setSessionStatus] = useState<SessionStatusResponse | null>(null);
   const [myRecords, setMyRecords] = useState<AttendanceRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [currentTime, setCurrentTime] = useState('');
+  const [faceVerifySession, setFaceVerifySession] = useState<AttendanceSession | null>(null);
 
   // Update clock every second
   useEffect(() => {
@@ -89,9 +93,11 @@ export default function StudentPage() {
         const found = r.data.find((s) => s.name === stored.name || s.id === stored.id);
         if (found) {
           setSelectedStudent({ id: found.id, name: found.name });
+          setSelectedStudentFull(found);
         } else {
           localStorage.removeItem('cqp22_student');
           setSelectedStudent(null);
+          setSelectedStudentFull(null);
         }
       }
     });
@@ -129,11 +135,12 @@ export default function StudentPage() {
   const selectStudent = (student: Student) => {
     const stored = { id: student.id, name: student.name };
     setSelectedStudent(stored);
+    setSelectedStudentFull(student);
     localStorage.setItem('cqp22_student', JSON.stringify(stored));
     setShowPicker(false);
   };
 
-  const checkIn = async (session: AttendanceSession) => {
+  const doCheckIn = useCallback(async (session: AttendanceSession) => {
     if (!selectedStudent) {
       setMessage({ text: 'Vui lòng chọn tên của bạn trước!', type: 'error' });
       return;
@@ -177,6 +184,19 @@ export default function StudentPage() {
       setMessage({ text: errMsg, type: 'error' });
     } finally {
       setLoading(false);
+    }
+  }, [selectedStudent, fetchMyRecords, fetchStatus, checkDeviceBinding]);
+
+  const checkIn = (session: AttendanceSession) => {
+    if (!selectedStudent) {
+      setMessage({ text: 'Vui lòng chọn tên của bạn trước!', type: 'error' });
+      return;
+    }
+    // Nếu sinh viên đã đăng ký khuôn mặt, yêu cầu quét mặt trước
+    if (selectedStudentFull?.faceDescriptor) {
+      setFaceVerifySession(session);
+    } else {
+      doCheckIn(session);
     }
   };
 
@@ -365,6 +385,9 @@ export default function StudentPage() {
                   >
                     <span className={styles.studentNum}>{s.orderNum}</span>
                     <span className={styles.studentName}>{s.name}</span>
+                    {s.faceDescriptor && (
+                      <span style={{ fontSize: '0.7rem', color: '#22c55e', fontWeight: 600, marginLeft: 'auto' }}>Khuôn mặt</span>
+                    )}
                     {selectedStudent?.id === s.id && <span className={styles.checkmark}>Đã chọn</span>}
                   </button>
                 ))}
@@ -447,7 +470,10 @@ export default function StudentPage() {
 
         {/* Footer note */}
         <p className={`${styles.footerNote} text-muted text-center`}>
-          Điểm danh yêu cầu có mặt tại trường và bật GPS
+          {selectedStudentFull?.faceDescriptor
+            ? 'Hệ thống sẽ yêu cầu quét khuôn mặt trước khi điểm danh'
+            : 'Điểm danh yêu cầu có mặt tại trường và bật GPS'
+          }
         </p>
       </main>
 
@@ -465,6 +491,22 @@ export default function StudentPage() {
           </Link>
         </div>
       </footer>
+
+      {/* Face Verify Modal — hiện khi sinh viên có khuôn mặt đăng ký và nhấn Ioem danh */}
+      {faceVerifySession && selectedStudentFull?.faceDescriptor && (
+        <Suspense fallback={null}>
+          <FaceVerifyModal
+            studentName={selectedStudentFull.name}
+            storedDescriptor={JSON.parse(selectedStudentFull.faceDescriptor)}
+            onVerified={() => {
+              const session = faceVerifySession;
+              setFaceVerifySession(null);
+              doCheckIn(session);
+            }}
+            onClose={() => setFaceVerifySession(null)}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

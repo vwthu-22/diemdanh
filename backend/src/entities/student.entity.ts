@@ -16,4 +16,7 @@ export class Student {
 
   @Column({ name: 'device_id', nullable: true })
   deviceId?: string;
+
+  @Column({ name: 'face_descriptor', type: 'text', nullable: true })
+  faceDescriptor?: string | null; // JSON array of 128 floats from face-api.js
 }

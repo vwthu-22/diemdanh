@@ -113,4 +113,34 @@ export class StudentsService {
     // Tự động cập nhật lại STT liên tục sau khi xóa
     await this.reorderAll();
   }
+
+  /**
+   * Lưu face descriptor (mảng 128 số Float32) của sinh viên
+   * Descriptor được lưu dưới dạng JSON string trong cột face_descriptor
+   */
+  async saveFaceDescriptor(id: number, descriptor: number[]): Promise<Student> {
+    const student = await this.studentRepo.findOneBy({ id });
+    if (!student) throw new NotFoundException('Không tìm thấy sinh viên');
+    student.faceDescriptor = JSON.stringify(descriptor);
+    return this.studentRepo.save(student);
+  }
+
+  /**
+   * Xóa face descriptor của sinh viên (hủy đăng ký khuôn mặt)
+   */
+  async removeFaceDescriptor(id: number): Promise<Student> {
+    const student = await this.studentRepo.findOneBy({ id });
+    if (!student) throw new NotFoundException('Không tìm thấy sinh viên');
+    student.faceDescriptor = null;
+    return this.studentRepo.save(student);
+  }
+
+  /**
+   * Lấy tất cả sinh viên đã đăng ký khuôn mặt (dùng cho so sánh khi điểm danh)
+   */
+  async getAllWithFaceDescriptor(): Promise<Student[]> {
+    const all = await this.studentRepo.find({ order: { orderNum: 'ASC' } });
+    return all.filter((s) => !!s.faceDescriptor);
+  }
 }
+

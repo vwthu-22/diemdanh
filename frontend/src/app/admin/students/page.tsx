@@ -1,6 +1,8 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import styles from './students.module.css';
+
+const FaceEnrollModal = lazy(() => import('./FaceEnrollModal'));
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'https://diemdanh-m37h.onrender.com/api';
 
@@ -9,6 +11,7 @@ interface Student {
   orderNum: number;
   name: string;
   dob: string;
+  faceDescriptor?: string | null;
 }
 
 interface EditForm {
@@ -31,6 +34,7 @@ export default function StudentsAdminPage() {
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
+  const [enrollingStudent, setEnrollingStudent] = useState<Student | null>(null);
 
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
     setToast({ msg, type });
@@ -163,6 +167,41 @@ export default function StudentsAdminPage() {
     }
   };
 
+  const handleSaveFace = async (descriptor: number[]) => {
+    if (!enrollingStudent) return;
+    try {
+      const res = await fetch(`${API}/students/${enrollingStudent.id}/face-descriptor`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({ descriptor }),
+      });
+      if (!res.ok) throw new Error();
+      showToast(`Đã lưu khuôn mặt cho ${enrollingStudent.name}`);
+      setEnrollingStudent(null);
+      await fetchStudents();
+    } catch {
+      showToast('Lỗi lưu khuôn mặt', 'error');
+    }
+  };
+
+  const handleRemoveFace = async (s: Student) => {
+    if (!confirm(`Hủy đăng ký khuôn mặt của "${s.name}"?`)) return;
+    try {
+      const res = await fetch(`${API}/students/${s.id}/face-descriptor`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      if (!res.ok) throw new Error();
+      showToast(`Đã hủy khuôn mặt của ${s.name}`);
+      await fetchStudents();
+    } catch {
+      showToast('Lỗi hủy khuôn mặt', 'error');
+    }
+  };
+
   return (
     <div className={styles.page}>
       {/* Toast */}
@@ -265,6 +304,7 @@ export default function StudentsAdminPage() {
                 <th className={styles.th} style={{ width: 52 }}>STT</th>
                 <th className={styles.th}>Họ và tên</th>
                 <th className={styles.th}>Ngày sinh</th>
+                <th className={styles.th} style={{ width: 120 }}>Khuôn mặt</th>
                 <th className={styles.th} style={{ width: 160 }}>Thao tác</th>
               </tr>
             </thead>
@@ -320,6 +360,27 @@ export default function StudentsAdminPage() {
                       <td className={styles.td}><span className={styles.orderNum}>{s.orderNum}</span></td>
                       <td className={styles.td}><span className={styles.studentName}>{s.name}</span></td>
                       <td className={styles.td}><span className={styles.dob}>{s.dob || '—'}</span></td>
+                      {/* Khuôn mặt */}
+                      <td className={styles.td}>
+                        <div className={styles.faceStatusCell}>
+                          {s.faceDescriptor ? (
+                            <>
+                              <span className={styles.hasFaceBadge}>Đã đăng ký</span>
+                              <button
+                                className={`${styles.faceBtn2} ${styles.faceBtn2Danger}`}
+                                onClick={() => handleRemoveFace(s)}
+                                title="Hủy đăng ký khuôn mặt"
+                              >Hủy</button>
+                            </>
+                          ) : (
+                            <button
+                              className={styles.faceBtn2}
+                              onClick={() => setEnrollingStudent(s)}
+                              title="Đăng ký khuôn mặt cho sinh viên này"
+                            >Đăng ký</button>
+                          )}
+                        </div>
+                      </td>
                       <td className={styles.td}>
                         <div className={styles.actions}>
                           <button
@@ -345,12 +406,23 @@ export default function StudentsAdminPage() {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={4} className={styles.empty}>Không tìm thấy sinh viên nào</td>
+                  <td colSpan={5} className={styles.empty}>Không tìm thấy sinh viên nào</td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* Face Enroll Modal */}
+      {enrollingStudent && (
+        <Suspense fallback={null}>
+          <FaceEnrollModal
+            studentName={enrollingStudent.name}
+            onSave={handleSaveFace}
+            onClose={() => setEnrollingStudent(null)}
+          />
+        </Suspense>
       )}
     </div>
   );

@@ -8,6 +8,7 @@ export interface Student {
   name: string;
   dob: string;
   deviceId?: string | null;
+  faceDescriptor?: string | null;
 }
 
 export interface AttendanceRecord {

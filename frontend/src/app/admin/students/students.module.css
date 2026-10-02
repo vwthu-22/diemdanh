@@ -289,3 +289,267 @@
   .formGrid > :last-child { grid-column: span 2; }
   .th:nth-child(3), .td:nth-child(3) { display: none; }
 }
+
+/* ── Face Enrollment Modal ── */
+.faceModalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.88);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  backdrop-filter: blur(6px);
+  animation: fadeIn 0.2s ease;
+}
+
+.faceModal {
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  padding: 24px;
+  width: 100%;
+  max-width: 460px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  animation: slideUp 0.25s ease;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.faceModalTitle {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #f1f5f9;
+  margin: 0;
+}
+.faceModalSubtitle {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin: 0;
+  font-weight: 500;
+}
+
+.cameraWrap {
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #020617;
+  aspect-ratio: 4 / 3;
+  border: 2px solid rgba(255, 255, 255, 0.08);
+}
+
+.cameraWrap.cameraActive {
+  border-color: rgba(59, 130, 246, 0.5);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.cameraWrap.faceDetected {
+  border-color: rgba(34, 197, 94, 0.6);
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
+}
+
+.cameraVideo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1); /* Mirror for selfie */
+  display: block;
+}
+
+.cameraCanvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform: scaleX(-1); /* Mirror to match video */
+}
+
+.cameraOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.faceFocusBox {
+  width: 56%;
+  aspect-ratio: 3 / 4;
+  border: 2.5px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.faceFocusBoxDetected {
+  border-color: rgba(34, 197, 94, 0.7);
+  box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.12);
+}
+
+.cameraStatusBar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #94a3b8;
+  transition: all 0.3s ease;
+}
+
+.statusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #475569;
+  transition: background 0.3s;
+  flex-shrink: 0;
+}
+
+.statusDotActive {
+  background: #3b82f6;
+  box-shadow: 0 0 6px rgba(59, 130, 246, 0.8);
+  animation: pulse 1.2s infinite;
+}
+
+.statusDotDetected {
+  background: #22c55e;
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.8);
+  animation: pulse 0.8s infinite;
+}
+
+.statusDotSaved {
+  background: #22c55e;
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.8);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+.captureProgress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.captureProgressLabel {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.76rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.captureProgressBar {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.captureProgressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #22c55e);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.faceModalActions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.faceBtn {
+  padding: 9px 20px;
+  border-radius: 9px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s ease;
+}
+
+.faceBtnPrimary {
+  background: #3b82f6;
+  color: #fff;
+}
+.faceBtnPrimary:hover:not(:disabled) { background: #2563eb; }
+.faceBtnPrimary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.faceBtnDanger {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+.faceBtnDanger:hover { background: rgba(239, 68, 68, 0.25); }
+
+.faceBtnGhost {
+  background: rgba(255, 255, 255, 0.06);
+  color: #94a3b8;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.faceBtnGhost:hover { background: rgba(255, 255, 255, 0.12); }
+
+.hasFaceBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+  padding: 2px 8px;
+  border-radius: 5px;
+}
+
+.faceBtn2 {
+  padding: 5px 12px;
+  border-radius: 7px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s ease;
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+}
+.faceBtn2:hover { background: rgba(59, 130, 246, 0.25); }
+
+.faceBtn2Danger {
+  background: rgba(239, 68, 68, 0.1);
+  color: #f87171;
+}
+.faceBtn2Danger:hover { background: rgba(239, 68, 68, 0.2); }
+
+.faceStatusCell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.modelsLoading {
+  text-align: center;
+  padding: 20px;
+  color: #64748b;
+  font-size: 0.84rem;
+}
+
