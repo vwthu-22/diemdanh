@@ -136,6 +136,16 @@ export default function StudentPage() {
     return () => clearInterval(interval);
   }, [fetchStatus, fetchMyRecords, checkDeviceBinding]);
 
+  // Đồng bộ selectedStudentFull với danh sách students mới nhất (bao gồm faceDescriptor)
+  useEffect(() => {
+    if (selectedStudent && students.length > 0) {
+      const found = students.find((s) => s.id === selectedStudent.id);
+      if (found) {
+        setSelectedStudentFull(found);
+      }
+    }
+  }, [students, selectedStudent]);
+
   const selectStudent = (student: Student) => {
     const stored = { id: student.id, name: student.name };
     setSelectedStudent(stored);

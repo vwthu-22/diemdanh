@@ -449,7 +449,7 @@ export class AttendanceService {
     if (!deviceId) return { bound: false, student: null };
     const student = await this.studentRepo.findOne({
       where: { deviceId },
-      select: { id: true, orderNum: true, name: true, dob: true, deviceId: true },
+      select: { id: true, orderNum: true, name: true, dob: true, deviceId: true, faceDescriptor: true },
     });
     return {
       bound: !!student,
