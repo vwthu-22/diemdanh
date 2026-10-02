@@ -7,6 +7,7 @@ import { Student, SessionStatusResponse, SessionInfo, AttendanceRecord, Attendan
 import styles from './page.module.css';
 
 const FaceVerifyModal = lazy(() => import('./FaceVerifyModal'));
+const FaceEnrollModal = lazy(() => import('./FaceEnrollModal'));
 
 const SESSION_LABELS: Record<AttendanceSession, string> = {
   morning: 'Buổi Sáng',
@@ -48,6 +49,8 @@ export default function StudentPage() {
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [currentTime, setCurrentTime] = useState('');
   const [faceVerifySession, setFaceVerifySession] = useState<AttendanceSession | null>(null);
+  const [showFaceEnroll, setShowFaceEnroll] = useState(false);
+  const [faceMsg, setFaceMsg] = useState<string | null>(null);
 
   // Update clock every second
   useEffect(() => {
@@ -74,9 +77,10 @@ export default function StudentPage() {
       );
       if (r.data.bound && r.data.student) {
         setIsDeviceBound(true);
-        const boundSt = { id: r.data.student.id, name: r.data.student.name };
-        setSelectedStudent(boundSt);
-        localStorage.setItem('cqp22_student', JSON.stringify(boundSt));
+        const boundSt = r.data.student;
+        setSelectedStudent({ id: boundSt.id, name: boundSt.name });
+        setSelectedStudentFull(boundSt);
+        localStorage.setItem('cqp22_student', JSON.stringify({ id: boundSt.id, name: boundSt.name }));
       } else {
         setIsDeviceBound(false);
       }
@@ -138,6 +142,24 @@ export default function StudentPage() {
     setSelectedStudentFull(student);
     localStorage.setItem('cqp22_student', JSON.stringify(stored));
     setShowPicker(false);
+  };
+
+  // Tự đăng ký khuôn mặt từ trang chính
+  const handleSelfEnrollFace = async (descriptor: number[]) => {
+    if (!selectedStudentFull) return;
+    try {
+      await api.put(`/students/${selectedStudentFull.id}/face-descriptor`, { descriptor });
+      // Cập nhật local state để phản ánh ngay
+      const updated = { ...selectedStudentFull, faceDescriptor: JSON.stringify(descriptor) };
+      setSelectedStudentFull(updated);
+      setStudents((prev) => prev.map((s) => s.id === updated.id ? updated : s));
+      setShowFaceEnroll(false);
+      setFaceMsg('Khuôn mặt đã được đăng ký! Hệ thống sẽ yêu cầu quét mặt khi điểm danh từ bây giờ.');
+      setTimeout(() => setFaceMsg(null), 4000);
+    } catch {
+      setFaceMsg('Lỗi đăng ký khuôn mặt, vui lòng thử lại');
+      setTimeout(() => setFaceMsg(null), 3000);
+    }
   };
 
   const doCheckIn = useCallback(async (session: AttendanceSession) => {
@@ -334,39 +356,60 @@ export default function StudentPage() {
           {selectedStudent ? (
             <div className={styles.selectedStudentInfo}>
               <div className={styles.selectedName}>{selectedStudent.name}</div>
-              {!isDeviceBound ? (
-                <button
-                  className={`btn btn-secondary btn-sm`}
-                  onClick={() => setShowPicker(true)}
-                  id="student-change-btn"
-                >
-                  Đổi
-                </button>
-              ) : (
-                <span
-                  style={{
-                    fontSize: '0.72rem',
-                    color: 'var(--color-text-muted)',
-                    background: 'rgba(255,255,255,0.06)',
-                    padding: '3px 8px',
-                    borderRadius: 6,
-                    border: '1px solid rgba(255,255,255,0.1)',
-                  }}
-                  title="Thiết bị này đã được cố định vào bạn. Nếu đổi điện thoại, vui lòng báo giáo viên reset!"
-                >
-                  Cố định máy
-                </span>
-              )}
+              <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                {selectedStudentFull?.faceDescriptor ? (
+                  <span style={{
+                    fontSize: '0.72rem', color: '#22c55e', fontWeight: 700,
+                    background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.25)',
+                    padding: '2px 8px', borderRadius: 5,
+                  }}>Khuôn mặt OK</span>
+                ) : (
+                  <button
+                    style={{
+                      fontSize: '0.72rem', fontWeight: 600, padding: '3px 10px', borderRadius: 6,
+                      border: '1px solid rgba(59,130,246,0.4)', background: 'rgba(59,130,246,0.12)',
+                      color: '#60a5fa', cursor: 'pointer', fontFamily: 'inherit',
+                    }}
+                    onClick={() => setShowFaceEnroll(true)}
+                    id="btn-face-enroll"
+                  >Đăng ký khuôn mặt</button>
+                )}
+                {!isDeviceBound ? (
+                  <button
+                    className={`btn btn-secondary btn-sm`}
+                    onClick={() => setShowPicker(true)}
+                    id="student-change-btn"
+                  >Đổi</button>
+                ) : (
+                  <span
+                    style={{
+                      fontSize: '0.72rem',
+                      color: 'var(--color-text-muted)',
+                      background: 'rgba(255,255,255,0.06)',
+                      padding: '3px 8px',
+                      borderRadius: 6,
+                      border: '1px solid rgba(255,255,255,0.1)',
+                    }}
+                    title="Thiết bị này đã được cố định vào bạn. Nếu đổi điện thoại, vui lòng báo giáo viên reset!"
+                  >Cố định máy</span>
+                )}
+              </div>
             </div>
           ) : (
             <button
               className={`btn btn-primary w-full`}
               onClick={() => setShowPicker(true)}
-            >
-              Chọn tên của bạn
-            </button>
+            >Chọn tên của bạn</button>
           )}
         </div>
+
+        {/* Face message */}
+        {faceMsg && (
+          <div className="fade-in" style={{
+            padding: '10px 14px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 500,
+            background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', color: '#86efac',
+          }}>{faceMsg}</div>
+        )}
 
         {/* Student Picker Modal */}
         {showPicker && (
@@ -492,7 +535,7 @@ export default function StudentPage() {
         </div>
       </footer>
 
-      {/* Face Verify Modal — hiện khi sinh viên có khuôn mặt đăng ký và nhấn Ioem danh */}
+      {/* Face Verify Modal — hiện khi sinh viên có khuôn mặt đăng ký và nhấn Điểm danh */}
       {faceVerifySession && selectedStudentFull?.faceDescriptor && (
         <Suspense fallback={null}>
           <FaceVerifyModal
@@ -504,6 +547,17 @@ export default function StudentPage() {
               doCheckIn(session);
             }}
             onClose={() => setFaceVerifySession(null)}
+          />
+        </Suspense>
+      )}
+
+      {/* Face Enroll Modal — người dùng tự đăng ký khuôn mặt */}
+      {showFaceEnroll && selectedStudentFull && (
+        <Suspense fallback={null}>
+          <FaceEnrollModal
+            studentName={selectedStudentFull.name}
+            onSave={handleSelfEnrollFace}
+            onClose={() => setShowFaceEnroll(false)}
           />
         </Suspense>
       )}

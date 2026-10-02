@@ -3,56 +3,60 @@ import { useRef, useState, useEffect, useCallback } from 'react';
 import { euclideanDistance } from '@/lib/faceApi';
 import styles from './faceverify.module.css';
 
-const THRESHOLD = 0.52; // khoảng cách tối đa để xem là cùng người
+const THRESHOLD = 0.52;
 
 interface Props {
   studentName: string;
-  storedDescriptor: number[]; // descriptor đã đăng ký
-  onVerified: () => void;    // gọi khi xác nhận thành công
+  storedDescriptor: number[];
+  onVerified: () => void;
   onClose: () => void;
 }
 
 export default function FaceVerifyModal({ studentName, storedDescriptor, onVerified, onClose }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const rafRef = useRef<number>(0);
+  const verifiedRef = useRef(false);
 
-  const [status, setStatus] = useState<'loading' | 'scanning' | 'matched' | 'failed' | 'error'>('loading');
-  const [msg, setMsg] = useState('Đang tải model...');
+  const [phase, setPhase] = useState<'loading' | 'scanning' | 'matched' | 'error'>('loading');
+  const [msg, setMsg] = useState('Đang tải model nhận diện...');
   const [faceDetected, setFaceDetected] = useState(false);
+  const [progress, setProgress] = useState(0); // 0-100 confidence accumulation
+  const progressRef = useRef(0);
   const [attempts, setAttempts] = useState(0);
+
+  const stopAll = useCallback(() => {
+    cancelAnimationFrame(rafRef.current);
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
 
     (async () => {
       try {
-        setMsg('Đang tải model nhận dạng...');
+        setMsg('Đang tải model nhận diện...');
         const { loadFaceApi } = await import('@/lib/faceApi');
         await loadFaceApi();
-
         if (cancelled) return;
 
+        setMsg('Đang kết nối camera...');
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user', width: 640, height: 480 },
+          video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
         });
-
-        if (cancelled) {
-          stream.getTracks().forEach((t) => t.stop());
-          return;
-        }
+        if (cancelled) { stream.getTracks().forEach((t) => t.stop()); return; }
 
         streamRef.current = stream;
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           await videoRef.current.play();
         }
-
-        setStatus('scanning');
-        setMsg('Nhìn thẳng vào camera để xác nhận danh tính...');
+        setPhase('scanning');
+        setMsg('Nhìn thẳng vào camera...');
+        startLoop();
       } catch (e: any) {
         if (!cancelled) {
-          setStatus('error');
+          setPhase('error');
           setMsg('Không thể truy cập camera: ' + (e?.message || ''));
         }
       }
@@ -60,63 +64,80 @@ export default function FaceVerifyModal({ studentName, storedDescriptor, onVerif
 
     return () => {
       cancelled = true;
-      if (timerRef.current) clearInterval(timerRef.current);
-      streamRef.current?.getTracks().forEach((t) => t.stop());
+      stopAll();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    if (status !== 'scanning') return;
+  const startLoop = useCallback(() => {
+    let lastDetect = 0;
+    const DETECT_EVERY_MS = 500; // chạy detect mỗi 500ms để không nặng
 
-    const scan = async () => {
-      if (!videoRef.current || videoRef.current.readyState < 2) return;
+    const loop = async (now: number) => {
+      if (verifiedRef.current) return;
+      rafRef.current = requestAnimationFrame(loop);
+
+      if (now - lastDetect < DETECT_EVERY_MS) return;
+      lastDetect = now;
+
+      const video = videoRef.current;
+      if (!video || video.readyState < 2) return;
 
       try {
         const { getFaceApi } = await import('@/lib/faceApi');
         const faceapi = await getFaceApi();
 
-        const detection = await faceapi
-          .detectSingleFace(videoRef.current, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 }))
+        const det = await faceapi
+          .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.45 }))
           .withFaceLandmarks(true)
           .withFaceDescriptor();
 
-        if (!detection) {
+        setAttempts((a) => a + 1);
+
+        if (!det) {
           setFaceDetected(false);
-          setMsg('Không thấy mặt — hãy nhìn thẳng vào camera');
+          setMsg('Không thấy khuôn mặt — hãy nhìn thẳng vào camera');
+          // giảm progress khi không thấy mặt
+          progressRef.current = Math.max(0, progressRef.current - 5);
+          setProgress(progressRef.current);
           return;
         }
 
         setFaceDetected(true);
-        const liveDescriptor = Array.from(detection.descriptor);
-        const dist = euclideanDistance(liveDescriptor, storedDescriptor);
-
-        setAttempts((a) => a + 1);
+        const live = Array.from(det.descriptor);
+        const dist = euclideanDistance(live, storedDescriptor);
 
         if (dist <= THRESHOLD) {
-          // Match!
-          if (timerRef.current) clearInterval(timerRef.current);
-          streamRef.current?.getTracks().forEach((t) => t.stop());
-          setStatus('matched');
-          setMsg(`Xác nhận thành công! (độ tương đồng: ${Math.round((1 - dist) * 100)}%)`);
-          setTimeout(() => onVerified(), 900);
+          // Tăng progress dần khi khớp
+          progressRef.current = Math.min(100, progressRef.current + 35);
+          setProgress(progressRef.current);
+          const confidence = Math.round((1 - dist) * 100);
+          setMsg(`Đang xác nhận... (${confidence}% phù hợp)`);
+
+          if (progressRef.current >= 100) {
+            verifiedRef.current = true;
+            stopAll();
+            setPhase('matched');
+            setMsg(`Xác nhận thành công! (${confidence}% phù hợp)`);
+            setTimeout(() => onVerified(), 700);
+          }
         } else {
-          setMsg(`Khuôn mặt chưa khớp (khoảng cách: ${dist.toFixed(3)}). Giữ mặt trong khung...`);
+          // Giảm progress khi không khớp
+          progressRef.current = Math.max(0, progressRef.current - 8);
+          setProgress(progressRef.current);
+          const confidence = Math.round((1 - dist) * 100);
+          setMsg(`Chưa nhận ra — ${confidence}% phù hợp. Giữ nguyên, đừng che mặt.`);
         }
       } catch {
         // silent
       }
     };
 
-    timerRef.current = setInterval(scan, 600);
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [status, storedDescriptor, onVerified]);
+    rafRef.current = requestAnimationFrame(loop);
+  }, [storedDescriptor, onVerified, stopAll]);
 
   const handleSkip = () => {
-    // Cho phép bỏ qua nếu camera bị lỗi hoặc admin muốn override
-    if (timerRef.current) clearInterval(timerRef.current);
-    streamRef.current?.getTracks().forEach((t) => t.stop());
+    stopAll();
     onVerified();
   };
 
@@ -128,32 +149,52 @@ export default function FaceVerifyModal({ studentName, storedDescriptor, onVerif
           <div className={styles.sub}>Điểm danh cho: <strong>{studentName}</strong></div>
         </div>
 
-        <div className={`${styles.cameraWrap} ${status === 'scanning' ? styles.scanning : ''} ${status === 'matched' ? styles.matched : ''} ${status === 'failed' ? styles.failed : ''}`}>
+        <div className={`${styles.cameraWrap} ${phase === 'scanning' ? styles.scanning : ''} ${phase === 'matched' ? styles.matched : ''}`}>
           <video ref={videoRef} className={styles.video} autoPlay muted playsInline />
           <div className={styles.overlay2}>
-            <div className={`${styles.focusRing} ${faceDetected ? styles.focusRingActive : ''} ${status === 'matched' ? styles.focusRingMatched : ''}`} />
+            <div className={`${styles.focusRing} ${faceDetected ? styles.focusRingActive : ''} ${phase === 'matched' ? styles.focusRingMatched : ''}`} />
           </div>
+
+          {/* Scanning animation overlay */}
+          {phase === 'scanning' && (
+            <div className={styles.scanLine} />
+          )}
+
+          {/* Match overlay */}
+          {phase === 'matched' && (
+            <div className={styles.matchOverlay}>
+              <div className={styles.matchCheck}>✓</div>
+            </div>
+          )}
         </div>
 
-        {/* Status */}
-        <div className={`${styles.statusBar} ${status === 'matched' ? styles.statusBarMatch : status === 'failed' ? styles.statusBarFail : ''}`}>
+        {/* Progress bar */}
+        {phase === 'scanning' && (
+          <div className={styles.progressWrap}>
+            <div className={styles.progressBar}>
+              <div
+                className={styles.progressFill}
+                style={{ width: `${progress}%`, transition: 'width 0.3s ease' }}
+              />
+            </div>
+            <span className={styles.progressLabel}>
+              {faceDetected ? (progress > 0 ? `${progress}%` : 'Đang phân tích...') : 'Chờ phát hiện mặt...'}
+            </span>
+          </div>
+        )}
+
+        {/* Status bar */}
+        <div className={`${styles.statusBar} ${phase === 'matched' ? styles.statusBarMatch : ''}`}>
           <div className={`${styles.dot} ${
-            status === 'matched' ? styles.dotMatch :
-            status === 'failed' ? styles.dotFail :
+            phase === 'matched' ? styles.dotMatch :
             faceDetected ? styles.dotDetected : styles.dotScanning
           }`} />
           <span>{msg}</span>
         </div>
 
-        {attempts > 8 && status === 'scanning' && (
-          <div className={styles.skipNote}>
-            Gặp khó khăn với camera?
-          </div>
-        )}
-
         <div className={styles.actions}>
           <button className={styles.cancelBtn} onClick={onClose}>Hủy</button>
-          {(status === 'error' || attempts > 10) && (
+          {(phase === 'error' || attempts > 12) && (
             <button className={styles.skipBtn} onClick={handleSkip}>
               Bỏ qua xác nhận mặt
             </button>

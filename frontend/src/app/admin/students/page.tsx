@@ -1,8 +1,6 @@
 'use client';
-import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import styles from './students.module.css';
-
-const FaceEnrollModal = lazy(() => import('./FaceEnrollModal'));
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'https://diemdanh-m37h.onrender.com/api';
 
@@ -34,7 +32,6 @@ export default function StudentsAdminPage() {
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
-  const [enrollingStudent, setEnrollingStudent] = useState<Student | null>(null);
 
   const showToast = (msg: string, type: 'success' | 'error' = 'success') => {
     setToast({ msg, type });
@@ -167,38 +164,18 @@ export default function StudentsAdminPage() {
     }
   };
 
-  const handleSaveFace = async (descriptor: number[]) => {
-    if (!enrollingStudent) return;
-    try {
-      const res = await fetch(`${API}/students/${enrollingStudent.id}/face-descriptor`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${getToken()}`,
-        },
-        body: JSON.stringify({ descriptor }),
-      });
-      if (!res.ok) throw new Error();
-      showToast(`Đã lưu khuôn mặt cho ${enrollingStudent.name}`);
-      setEnrollingStudent(null);
-      await fetchStudents();
-    } catch {
-      showToast('Lỗi lưu khuôn mặt', 'error');
-    }
-  };
-
-  const handleRemoveFace = async (s: Student) => {
-    if (!confirm(`Hủy đăng ký khuôn mặt của "${s.name}"?`)) return;
+  const handleResetFace = async (s: Student) => {
+    if (!confirm(`Xác nhận reset / xóa khuôn mặt của sinh viên "${s.name}"? Sinh viên sẽ cần tự quét lại.`)) return;
     try {
       const res = await fetch(`${API}/students/${s.id}/face-descriptor`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${getToken()}` },
       });
       if (!res.ok) throw new Error();
-      showToast(`Đã hủy khuôn mặt của ${s.name}`);
+      showToast(`Đã reset khuôn mặt của ${s.name}`);
       await fetchStudents();
     } catch {
-      showToast('Lỗi hủy khuôn mặt', 'error');
+      showToast('Lỗi khi reset khuôn mặt', 'error');
     }
   };
 
@@ -215,7 +192,7 @@ export default function StudentsAdminPage() {
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}>Danh sách thành viên</h1>
-          <p className={styles.subtitle}>Quản lý, chỉnh sửa thông tin sinh viên CQP 22 (tự động xếp theo vần tên)</p>
+          <p className={styles.subtitle}>Quản lý thông tin & dữ liệu nhận dạng khuôn mặt (sinh viên tự quét ở trang chủ)</p>
         </div>
         <div className={styles.headerActions}>
           <button
@@ -304,8 +281,8 @@ export default function StudentsAdminPage() {
                 <th className={styles.th} style={{ width: 52 }}>STT</th>
                 <th className={styles.th}>Họ và tên</th>
                 <th className={styles.th}>Ngày sinh</th>
-                <th className={styles.th} style={{ width: 120 }}>Khuôn mặt</th>
-                <th className={styles.th} style={{ width: 160 }}>Thao tác</th>
+                <th className={styles.th} style={{ width: 140 }}>Khuôn mặt</th>
+                <th className={styles.th} style={{ width: 150 }}>Thao tác</th>
               </tr>
             </thead>
             <tbody>
@@ -339,7 +316,7 @@ export default function StudentsAdminPage() {
                           onChange={e => setEditForm(f => ({ ...f, dob: e.target.value }))}
                         />
                       </td>
-                      <td className={styles.td}>
+                      <td className={styles.td} colSpan={2}>
                         <div className={styles.actions}>
                           <button
                             className={styles.confirmBtn}
@@ -368,16 +345,12 @@ export default function StudentsAdminPage() {
                               <span className={styles.hasFaceBadge}>Đã đăng ký</span>
                               <button
                                 className={`${styles.faceBtn2} ${styles.faceBtn2Danger}`}
-                                onClick={() => handleRemoveFace(s)}
-                                title="Hủy đăng ký khuôn mặt"
-                              >Hủy</button>
+                                onClick={() => handleResetFace(s)}
+                                title="Reset / Xóa khuôn mặt của sinh viên này để họ tự quét lại"
+                              >Reset</button>
                             </>
                           ) : (
-                            <button
-                              className={styles.faceBtn2}
-                              onClick={() => setEnrollingStudent(s)}
-                              title="Đăng ký khuôn mặt cho sinh viên này"
-                            >Đăng ký</button>
+                            <span className={styles.noFaceBadge}>Chưa có</span>
                           )}
                         </div>
                       </td>
@@ -412,17 +385,6 @@ export default function StudentsAdminPage() {
             </tbody>
           </table>
         </div>
-      )}
-
-      {/* Face Enroll Modal */}
-      {enrollingStudent && (
-        <Suspense fallback={null}>
-          <FaceEnrollModal
-            studentName={enrollingStudent.name}
-            onSave={handleSaveFace}
-            onClose={() => setEnrollingStudent(null)}
-          />
-        </Suspense>
       )}
     </div>
   );
