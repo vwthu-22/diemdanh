@@ -57,50 +57,20 @@ export class SeedService implements OnApplicationBootstrap {
   }
 
   private async seedStudents() {
-    const validNames = STUDENTS.map((s) => s.name);
-
-    // 1. Tự động xóa những sinh viên đã bị xóa khỏi danh sách chuẩn (kèm xóa lượt điểm danh để tránh lỗi khóa ngoại)
-    try {
-      const allDbStudents = await this.studentRepo.find();
-      for (const dbStudent of allDbStudents) {
-        if (!validNames.includes(dbStudent.name)) {
-          // Xóa tất cả điểm danh liên quan trước
-          await this.attendanceRepo.delete({ studentId: dbStudent.id }).catch(() => {});
-          await this.studentRepo.query(`DELETE FROM "attendances" WHERE "student_id" = $1`, [dbStudent.id]).catch(() => {});
-          await this.studentRepo.query(`DELETE FROM attendances WHERE student_id = ?`, [dbStudent.id]).catch(() => {});
-
-          // Xóa sinh viên
-          await this.studentRepo.delete(dbStudent.id).catch(() => {});
-          await this.studentRepo.query(`DELETE FROM "students" WHERE "id" = $1`, [dbStudent.id]).catch(() => {});
-          await this.studentRepo.query(`DELETE FROM students WHERE id = ?`, [dbStudent.id]).catch(() => {});
-          console.log(`🗑️ Removed deleted student: ${dbStudent.name} (id: ${dbStudent.id})`);
-        }
-      }
-    } catch (err) {
-      console.error('Error cleaning up deleted students:', err);
+    const count = await this.studentRepo.count();
+    if (count > 0) {
+      // Đã có danh sách sinh viên trong cơ sở dữ liệu, giữ nguyên dữ liệu người dùng
+      return;
     }
 
-    // 2. Thêm mới hoặc cập nhật STT, ngày sinh theo thứ tự chuẩn
+    // Seed danh sách ban đầu nếu DB hoàn toàn trống
     for (const s of STUDENTS) {
       try {
-        const exists = await this.studentRepo.findOne({
-          where: { name: s.name },
-        });
-        if (!exists) {
-          const student = this.studentRepo.create(s);
-          await this.studentRepo.save(student);
-          console.log(`✅ Seeded student #${s.orderNum}: ${s.name}`);
-        } else {
-          // Tự động đồng bộ và cập nhật lại STT (orderNum) / Ngày sinh (dob) theo danh sách mới
-          if (exists.orderNum !== s.orderNum || exists.dob !== s.dob) {
-            exists.orderNum = s.orderNum;
-            exists.dob = s.dob;
-            await this.studentRepo.save(exists);
-            console.log(`🔄 Updated student #${s.orderNum}: ${s.name} (${s.dob})`);
-          }
-        }
+        const student = this.studentRepo.create(s);
+        await this.studentRepo.save(student);
+        console.log(`✅ Seeded student #${s.orderNum}: ${s.name}`);
       } catch (err) {
-        console.error(`Error syncing student ${s.name}:`, err);
+        console.error(`Error seeding student ${s.name}:`, err);
       }
     }
   }

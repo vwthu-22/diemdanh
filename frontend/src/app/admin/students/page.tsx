@@ -27,6 +27,7 @@ export default function StudentsAdminPage() {
   const [editForm, setEditForm] = useState<EditForm>(emptyForm);
   const [addForm, setAddForm] = useState<EditForm>(emptyForm);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [reordering, setReordering] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
@@ -69,6 +70,26 @@ export default function StudentsAdminPage() {
     setEditForm(emptyForm);
   };
 
+  const handleReorder = async () => {
+    setReordering(true);
+    try {
+      const res = await fetch(`${API}/students/reorder`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${getToken()}`,
+        },
+      });
+      if (!res.ok) throw new Error();
+      const updatedData = await res.json();
+      setStudents(updatedData);
+      showToast('Đã sắp xếp lại danh sách theo vần tên thành công');
+    } catch {
+      showToast('Lỗi khi sắp xếp danh sách', 'error');
+    } finally {
+      setReordering(false);
+    }
+  };
+
   const saveEdit = async (id: number) => {
     if (!editForm.name.trim()) { showToast('Họ tên không được để trống', 'error'); return; }
     setSaving(true);
@@ -82,7 +103,7 @@ export default function StudentsAdminPage() {
         body: JSON.stringify({
           name: editForm.name.trim(),
           dob: editForm.dob.trim(),
-          orderNum: Number(editForm.orderNum),
+          orderNum: editForm.orderNum ? Number(editForm.orderNum) : undefined,
         }),
       });
       if (!res.ok) throw new Error();
@@ -116,7 +137,6 @@ export default function StudentsAdminPage() {
 
   const handleAdd = async () => {
     if (!addForm.name.trim()) { showToast('Họ tên không được để trống', 'error'); return; }
-    if (!addForm.orderNum || isNaN(Number(addForm.orderNum))) { showToast('STT phải là số', 'error'); return; }
     setSaving(true);
     try {
       const res = await fetch(`${API}/students`, {
@@ -128,11 +148,11 @@ export default function StudentsAdminPage() {
         body: JSON.stringify({
           name: addForm.name.trim(),
           dob: addForm.dob.trim(),
-          orderNum: Number(addForm.orderNum),
+          orderNum: addForm.orderNum ? Number(addForm.orderNum) : undefined,
         }),
       });
       if (!res.ok) throw new Error();
-      showToast('Thêm sinh viên thành công');
+      showToast('Thêm sinh viên thành công (đã tự động xếp theo vần)');
       setAddForm(emptyForm);
       setShowAddForm(false);
       await fetchStudents();
@@ -156,15 +176,25 @@ export default function StudentsAdminPage() {
       <div className={styles.header}>
         <div>
           <h1 className={styles.title}>Danh sách thành viên</h1>
-          <p className={styles.subtitle}>Quản lý, chỉnh sửa thông tin sinh viên CQP 22</p>
+          <p className={styles.subtitle}>Quản lý, chỉnh sửa thông tin sinh viên CQP 22 (tự động xếp theo vần tên)</p>
         </div>
-        <button
-          className={styles.addBtn}
-          id="btn-add-student"
-          onClick={() => { setShowAddForm(v => !v); setEditingId(null); }}
-        >
-          {showAddForm ? 'Hủy thêm' : 'Thêm sinh viên'}
-        </button>
+        <div className={styles.headerActions}>
+          <button
+            className={styles.reorderBtn}
+            id="btn-reorder-students"
+            onClick={handleReorder}
+            disabled={reordering || loading}
+          >
+            {reordering ? 'Đang sắp xếp...' : 'Sắp xếp theo vần'}
+          </button>
+          <button
+            className={styles.addBtn}
+            id="btn-add-student"
+            onClick={() => { setShowAddForm(v => !v); setEditingId(null); }}
+          >
+            {showAddForm ? 'Hủy thêm' : 'Thêm sinh viên'}
+          </button>
+        </div>
       </div>
 
       {/* Add form */}
@@ -173,12 +203,12 @@ export default function StudentsAdminPage() {
           <h3 className={styles.addCardTitle}>Thêm sinh viên mới</h3>
           <div className={styles.formGrid}>
             <div className={styles.formGroup}>
-              <label className={styles.label}>STT</label>
+              <label className={styles.label}>STT (Tùy chọn)</label>
               <input
                 id="add-orderNum"
                 className={styles.input}
                 type="number"
-                placeholder="VD: 33"
+                placeholder="Tự động"
                 value={addForm.orderNum}
                 onChange={e => setAddForm(f => ({ ...f, orderNum: e.target.value }))}
               />

@@ -47,6 +47,34 @@
   color: var(--color-text-muted);
   margin: 0;
 }
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.reorderBtn {
+  flex-shrink: 0;
+  padding: 9px 16px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--color-text-primary);
+  font-weight: 600;
+  font-size: 0.86rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+.reorderBtn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-1px);
+}
+.reorderBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 .addBtn {
   flex-shrink: 0;
   padding: 9px 18px;

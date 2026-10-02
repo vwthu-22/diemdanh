@@ -23,8 +23,13 @@ export class StudentsController {
   }
 
   @Post()
-  create(@Body() body: { name: string; dob?: string; orderNum: number }) {
+  create(@Body() body: { name: string; dob?: string; orderNum?: number }) {
     return this.studentsService.create(body);
+  }
+
+  @Post('reorder')
+  reorder() {
+    return this.studentsService.reorderAll();
   }
 
   @Patch(':id')
