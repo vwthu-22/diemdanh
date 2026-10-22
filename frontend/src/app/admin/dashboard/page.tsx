@@ -32,6 +32,7 @@ export default function DashboardPage() {
 
   // Bulk attend state
   const [bulkSession, setBulkSession] = useState<AttendanceSession | 'both'>('morning');
+
   const [bulkLoading, setBulkLoading] = useState(false);
 
   // Modal State
@@ -135,10 +136,12 @@ export default function DashboardPage() {
   const markAllPresent = async () => {
     const sessionLabel =
       bulkSession === 'both'
-        ? 'cả 2 buổi'
+        ? 'cả 3 buổi'
         : bulkSession === 'morning'
         ? 'buổi sáng'
-        : 'buổi chiều';
+        : bulkSession === 'afternoon'
+        ? 'buổi chiều'
+        : 'buổi tối';
 
     const confirmed = window.confirm(
       `Điểm danh "Có mặt" cho toàn bộ sinh viên (${sessionLabel})?\n\nThao tác này sẽ cập nhật tất cả sinh viên chưa có mặt thành "Có mặt".`,
@@ -166,7 +169,10 @@ export default function DashboardPage() {
     try {
       if (excuseStatus === 'delete') {
         const row = rows.find((r) => r.student.id === excuseModal.studentId);
-        const target = excuseSession === 'morning' ? row?.morning : row?.afternoon;
+        const target =
+          excuseSession === 'morning' ? row?.morning
+          : excuseSession === 'afternoon' ? row?.afternoon
+          : row?.evening;
         if (target) {
           await api.delete(`/admin/attendance/${target.id}`);
         }
@@ -186,7 +192,7 @@ export default function DashboardPage() {
     } catch {}
   };
 
-  const [viewSession, setViewSession] = useState<'all' | 'morning' | 'afternoon'>('all');
+  const [viewSession, setViewSession] = useState<'all' | 'morning' | 'afternoon' | 'evening'>('all');
 
   // Compute time snapshot once per render, not per-row (avoids 64x Date object creation)
   const timeSnapshot = useMemo(() => {
@@ -201,11 +207,14 @@ export default function DashboardPage() {
     return { currentToday, currentTime };
   }, []);
 
-  const isSessionClosed = useCallback((session: 'morning' | 'afternoon') => {
+  const isSessionClosed = useCallback((session: 'morning' | 'afternoon' | 'evening') => {
     const { currentToday, currentTime } = timeSnapshot;
     if (date < currentToday) return true;
     if (date > currentToday) return false;
-    const lateEnd = session === 'morning' ? (settings?.morningLateEnd || '08:15') : (settings?.afternoonLateEnd || '13:45');
+    const lateEnd =
+      session === 'morning' ? (settings?.morningLateEnd || '08:15')
+      : session === 'afternoon' ? (settings?.afternoonLateEnd || '13:45')
+      : (settings?.eveningLateEnd || '18:45');
     return currentTime > lateEnd;
   }, [date, settings, timeSnapshot]);
 
@@ -214,16 +223,16 @@ export default function DashboardPage() {
     return d.getDay().toString();
   }, []);
 
-  const isSessionScheduled = useCallback((session: 'morning' | 'afternoon') => {
+  const isSessionScheduled = useCallback((session: 'morning' | 'afternoon' | 'evening') => {
     const dow = getDayOfWeekKey(date);
     const schedule = settings?.schedule;
-    if (!schedule) return true;
-    return schedule[dow]?.includes(session) ?? true;
+    if (!schedule) return session !== 'evening'; // evening off by default if no schedule
+    return schedule[dow]?.includes(session) ?? false;
   }, [date, getDayOfWeekKey, settings]);
 
   const getEffectiveSessionStatus = useCallback((
-    record: AttendanceRecord | null,
-    session: 'morning' | 'afternoon'
+    record: AttendanceRecord | null | undefined,
+    session: 'morning' | 'afternoon' | 'evening'
   ): AttendanceStatus | null => {
     if (record) return record.status;
     if (!isSessionScheduled(session)) return null; // Ca nghỉ theo TKB
@@ -235,13 +244,15 @@ export default function DashboardPage() {
   const getRowSummary = useCallback((row: DailyAttendanceRow): AttendanceStatus => {
     const morningStatus = getEffectiveSessionStatus(row.morning, 'morning');
     const afternoonStatus = getEffectiveSessionStatus(row.afternoon, 'afternoon');
+    const eveningStatus = getEffectiveSessionStatus(row.evening, 'evening');
 
-    const statuses = [morningStatus, afternoonStatus].filter(Boolean) as AttendanceStatus[];
+    const statuses = [morningStatus, afternoonStatus, eveningStatus].filter(Boolean) as AttendanceStatus[];
     if (statuses.length === 0) return 'absent';
 
     // If viewing specific session
     if (viewSession === 'morning') return morningStatus || 'absent';
     if (viewSession === 'afternoon') return afternoonStatus || 'absent';
+    if (viewSession === 'evening') return eveningStatus || 'absent';
 
     // When viewing whole day: chỉ cần có mặt ít nhất 1 buổi trong ngày là tính Có mặt / Muộn
     if (statuses.some((s) => s === 'late')) return 'late';
@@ -252,14 +263,15 @@ export default function DashboardPage() {
 
   // Stats computation
   const stats = useMemo(() => {
-    if (viewSession === 'morning' || viewSession === 'afternoon') {
+    if (viewSession === 'morning' || viewSession === 'afternoon' || viewSession === 'evening') {
       const scheduled = isSessionScheduled(viewSession);
       const total = scheduled ? rows.length : 0;
       let present = 0, late = 0, absent = 0, excused = 0;
 
       if (scheduled) {
         rows.forEach((r) => {
-          const st = getEffectiveSessionStatus(viewSession === 'morning' ? r.morning : r.afternoon, viewSession);
+          const record = viewSession === 'morning' ? r.morning : viewSession === 'afternoon' ? r.afternoon : r.evening;
+          const st = getEffectiveSessionStatus(record, viewSession);
           if (st === 'present') present++;
           else if (st === 'late') late++;
           else if (st === 'absent') absent++;
@@ -288,6 +300,7 @@ export default function DashboardPage() {
 
     const morningScheduled = isSessionScheduled('morning');
     const afternoonScheduled = isSessionScheduled('afternoon');
+    const eveningScheduled = isSessionScheduled('evening');
 
     rows.forEach((r) => {
       if (morningScheduled) {
@@ -301,6 +314,14 @@ export default function DashboardPage() {
       if (afternoonScheduled) {
         totalSlots++;
         const st = getEffectiveSessionStatus(r.afternoon, 'afternoon');
+        if (st === 'present') presentSlots++;
+        else if (st === 'late') lateSlots++;
+        else if (st === 'absent') absentSlots++;
+        else if (st === 'excused') excusedSlots++;
+      }
+      if (eveningScheduled) {
+        totalSlots++;
+        const st = getEffectiveSessionStatus(r.evening, 'evening');
         if (st === 'present') presentSlots++;
         else if (st === 'late') lateSlots++;
         else if (st === 'absent') absentSlots++;
@@ -404,57 +425,31 @@ export default function DashboardPage() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255, 255, 255, 0.05)', padding: 4, borderRadius: 10, border: '1px solid rgba(255, 255, 255, 0.1)' }}>
           <span style={{ fontSize: '0.78rem', color: 'var(--color-text-secondary)', padding: '0 8px', fontWeight: 600 }}>Thống kê:</span>
-          <button
-            type="button"
-            style={{
-              padding: '5px 12px',
-              fontSize: '0.78rem',
-              fontWeight: 600,
-              borderRadius: 6,
-              border: 'none',
-              cursor: 'pointer',
-              background: viewSession === 'all' ? 'var(--color-primary)' : 'transparent',
-              color: viewSession === 'all' ? '#fff' : 'var(--color-text-secondary)',
-            }}
-            onClick={() => setViewSession('all')}
-          >
-            Cả ngày (tổng ca)
-          </button>
-          <button
-            type="button"
-            style={{
-              padding: '5px 12px',
-              fontSize: '0.78rem',
-              fontWeight: 600,
-              borderRadius: 6,
-              border: 'none',
-              cursor: 'pointer',
-              background: viewSession === 'morning' ? 'var(--color-primary)' : 'transparent',
-              color: viewSession === 'morning' ? '#fff' : 'var(--color-text-secondary)',
-            }}
-            onClick={() => setViewSession('morning')}
-          >
-            Ca Sáng
-          </button>
-          <button
-            type="button"
-            style={{
-              padding: '5px 12px',
-              fontSize: '0.78rem',
-              fontWeight: 600,
-              borderRadius: 6,
-              border: 'none',
-              cursor: 'pointer',
-              background: viewSession === 'afternoon' ? 'var(--color-primary)' : 'transparent',
-              color: viewSession === 'afternoon' ? '#fff' : 'var(--color-text-secondary)',
-            }}
-            onClick={() => setViewSession('afternoon')}
-          >
-            Ca Chiều
-          </button>
+          {(['all', 'morning', 'afternoon', 'evening'] as const).map((s) => (
+            <button
+              key={s}
+              type="button"
+              style={{
+                padding: '5px 12px',
+                fontSize: '0.78rem',
+                fontWeight: 600,
+                borderRadius: 6,
+                border: 'none',
+                cursor: 'pointer',
+                background: viewSession === s ? 'var(--color-primary)' : 'transparent',
+                color: viewSession === s ? '#fff' : 'var(--color-text-secondary)',
+              }}
+              onClick={() => setViewSession(s)}
+            >
+              {s === 'all' ? 'Cả ngày' : s === 'morning' ? 'Ca Sáng' : s === 'afternoon' ? 'Ca Chiều' : 'Ca Tối'}
+            </button>
+          ))}
         </div>
         <span style={{ fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>
-          {viewSession === 'all' ? `Tổng cộng ${stats.total} lượt ca học trong ngày` : viewSession === 'morning' ? 'Thống kê riêng ca Sáng' : 'Thống kê riêng ca Chiều'}
+          {viewSession === 'all' ? `Tổng cộng ${stats.total} lượt ca học trong ngày`
+            : viewSession === 'morning' ? 'Thống kê riêng ca Sáng'
+            : viewSession === 'afternoon' ? 'Thống kê riêng ca Chiều'
+            : 'Thống kê riêng ca Tối'}
         </span>
       </div>
 
@@ -603,7 +598,8 @@ export default function DashboardPage() {
             >
               <option value="morning">Sáng</option>
               <option value="afternoon">Chiều</option>
-              <option value="both">Cả 2 buổi</option>
+              <option value="evening">Tối</option>
+              <option value="both">Cả 3 buổi</option>
             </select>
             <button
               type="button"
@@ -646,19 +642,27 @@ export default function DashboardPage() {
                       {settings ? `${settings.morningStart} - ${settings.morningLateEnd}` : '07:30 - 08:15'}
                     </div>
                   </th>
-                  <th className={`${styles.colSession} ${styles.sectionDividerRight}`}>
+                  <th className={`${styles.colSession} ${styles.dayDivider}`}>
                     Chiều
                     <div style={{ fontSize: '0.72rem', fontWeight: 500, color: 'var(--color-text-muted)', marginTop: 2 }}>
                       {settings ? `${settings.afternoonStart} - ${settings.afternoonLateEnd}` : '13:00 - 13:45'}
                     </div>
                   </th>
+                  {isSessionScheduled('evening') && (
+                    <th className={`${styles.colSession} ${styles.dayDivider}`}>
+                      Tối
+                      <div style={{ fontSize: '0.72rem', fontWeight: 500, color: 'var(--color-text-muted)', marginTop: 2 }}>
+                        {settings?.eveningStart ? `${settings.eveningStart} - ${settings.eveningLateEnd}` : '18:00 - 18:45'}
+                      </div>
+                    </th>
+                  )}
                   <th className={`${styles.colSummary} ${styles.sectionDividerLeft}`}>Tổng kết</th>
                   <th className={styles.colAction}>Thao tác</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredRows.map((row) => {
-                  const { student, morning, afternoon } = row;
+                  const { student, morning, afternoon, evening } = row;
                   const daySummary = getRowSummary(row);
 
                   return (
@@ -1006,11 +1010,157 @@ export default function DashboardPage() {
                         )}
                       </td>
 
+                      {/* Ca Tối - only shown when evening is scheduled */}
+                      {isSessionScheduled('evening') && (
+                        <td className={`${styles.colSession} ${styles.dayDivider}`}>
+                          {evening ? (
+                            <div className={styles.sessionBox}>
+                              <span
+                                className={`${styles.sessionStatusPill} badge-${evening.status}`}
+                                style={{
+                                  background: `var(--color-${evening.status}-bg)`,
+                                  color: `var(--color-${evening.status})`,
+                                  border: `1px solid var(--color-${evening.status}-border)`,
+                                }}
+                              >
+                                {STATUS_LABELS[evening.status]}
+                              </span>
+                              {evening.checkInTime && (
+                                <span className={styles.timePill}>
+                                  {evening.checkInTime.substring(0, 5)}
+                                </span>
+                              )}
+                              {evening.note ? (
+                                <span
+                                  className={styles.notePill}
+                                  title={`Lý do: ${evening.note}`}
+                                  onClick={() => {
+                                    setExcuseModal({ studentId: student.id, name: student.name, dob: student.dob });
+                                    setExcuseSession('evening');
+                                    setExcuseStatus(evening.status);
+                                    setExcuseNote(evening.note || '');
+                                  }}
+                                >
+                                  {evening.note}
+                                </span>
+                              ) : evening.status === 'excused' ? (
+                                <button
+                                  type="button"
+                                  className={styles.addNoteLink}
+                                  onClick={() => {
+                                    setExcuseModal({ studentId: student.id, name: student.name, dob: student.dob });
+                                    setExcuseSession('evening');
+                                    setExcuseStatus('excused');
+                                    setExcuseNote('');
+                                  }}
+                                >
+                                  Thêm lý do
+                                </button>
+                              ) : null}
+                              <div className={styles.quickActionRow}>
+                                <select
+                                  className={styles.statusMiniSelect}
+                                  value={evening.status}
+                                  onChange={(e) => {
+                                    if (e.target.value === 'delete') {
+                                      deleteRecord(evening.id);
+                                    } else {
+                                      updateStatus(evening.id, e.target.value as AttendanceStatus);
+                                    }
+                                  }}
+                                >
+                                  {ALL_STATUSES.map((s) => (
+                                    <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+                                  ))}
+                                  <option value="delete" style={{ color: 'var(--color-absent)' }}>Xóa</option>
+                                </select>
+                                <button
+                                  type="button"
+                                  className={styles.miniEditBtn}
+                                  title="Sửa lý do / trạng thái"
+                                  onClick={() => {
+                                    setExcuseModal({ studentId: student.id, name: student.name, dob: student.dob });
+                                    setExcuseSession('evening');
+                                    setExcuseStatus(evening.status);
+                                    setExcuseNote(evening.note || '');
+                                  }}
+                                >
+                                  Sửa
+                                </button>
+                                <button
+                                  type="button"
+                                  className={styles.miniDeleteBtn}
+                                  title="Xóa lượt này"
+                                  onClick={() => deleteRecord(evening.id)}
+                                >
+                                  Xóa
+                                </button>
+                              </div>
+                            </div>
+                          ) : isSessionClosed('evening') ? (
+                            <div className={styles.sessionBox}>
+                              <span
+                                className={`${styles.sessionStatusPill} badge-absent`}
+                                style={{
+                                  background: 'var(--color-absent-bg)',
+                                  color: 'var(--color-absent)',
+                                  border: '1px solid var(--color-absent-border)',
+                                }}
+                              >
+                                Vắng không phép
+                              </span>
+                              <div className={styles.quickActionRow}>
+                                <select
+                                  className={styles.statusMiniSelect}
+                                  value="absent"
+                                  onChange={(e) => {
+                                    if (e.target.value !== 'absent' && e.target.value !== 'delete') {
+                                      createOrUpdateStatus(null, student.id, 'evening', e.target.value as AttendanceStatus);
+                                    }
+                                  }}
+                                >
+                                  {ALL_STATUSES.map((s) => (
+                                    <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+                                  ))}
+                                </select>
+                                <button
+                                  type="button"
+                                  className={styles.miniEditBtn}
+                                  title="Thêm phép / sửa trạng thái"
+                                  onClick={() => {
+                                    setExcuseModal({ studentId: student.id, name: student.name, dob: student.dob });
+                                    setExcuseSession('evening');
+                                    setExcuseStatus('excused');
+                                    setExcuseNote('');
+                                  }}
+                                >
+                                  Phép
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              className={styles.addExcuseBtn}
+                              onClick={() => {
+                                setExcuseModal({ studentId: student.id, name: student.name, dob: student.dob });
+                                setExcuseSession('evening');
+                                setExcuseStatus('excused');
+                                setExcuseNote('');
+                              }}
+                            >
+                              Điểm danh / Phép
+                            </button>
+                          )}
+                        </td>
+                      )}
+
                       {/* Tổng kết ngày */}
                       <td className={`${styles.colSummary} ${styles.sectionDividerLeft}`}>
                         {(() => {
                           const m = getEffectiveSessionStatus(row.morning, 'morning');
                           const a = getEffectiveSessionStatus(row.afternoon, 'afternoon');
+                          const ev = getEffectiveSessionStatus(row.evening, 'evening');
 
                           if (viewSession === 'morning') {
                             const s = m || 'absent';
@@ -1030,6 +1180,22 @@ export default function DashboardPage() {
 
                           if (viewSession === 'afternoon') {
                             const s = a || 'absent';
+                            return (
+                              <span
+                                className={styles.daySummaryPill}
+                                style={{
+                                  background: `var(--color-${s}-bg)`,
+                                  color: `var(--color-${s})`,
+                                  border: `1px solid var(--color-${s}-border)`,
+                                }}
+                              >
+                                {STATUS_LABELS[s]}
+                              </span>
+                            );
+                          }
+
+                          if (viewSession === 'evening') {
+                            const s = ev || 'absent';
                             return (
                               <span
                                 className={styles.daySummaryPill}
@@ -1208,6 +1374,15 @@ export default function DashboardPage() {
               >
                 Buổi Chiều
               </button>
+              {isSessionScheduled('evening') && (
+                <button
+                  type="button"
+                  className={`${styles.sessionSegmentBtn} ${excuseSession === 'evening' ? styles.sessionSegmentBtnActive : ''}`}
+                  onClick={() => setExcuseSession('evening')}
+                >
+                  Buổi Tối
+                </button>
+              )}
             </div>
 
             {/* Status Options Grid */}
