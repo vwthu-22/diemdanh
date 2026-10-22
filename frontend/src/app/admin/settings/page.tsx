@@ -560,7 +560,7 @@ export default function SettingsPage() {
         <div className={styles.weekSelectorCard}>
           <div className={styles.weekSelectorLeft}>
             <span className={styles.weekSelectorLabel}>
-              📅 Chọn tuần:
+              Chọn tuần:
             </span>
             <select
               className={styles.weekDropdown}
@@ -568,7 +568,7 @@ export default function SettingsPage() {
               onChange={(e) => setSelectedWeek(e.target.value)}
               id="settings-week-select"
             >
-              <option value="default">📋 Lịch mặc định (áp dụng các tuần chưa cài riêng)</option>
+              <option value="default"> Lịch mặc định (áp dụng các tuần chưa cài riêng)</option>
               <optgroup label="Tùy chỉnh riêng từng tuần">
                 {WEEKS_LIST.map((w) => {
                   const hasCustom = !!form.weeklySchedules?.[w.from];
@@ -585,7 +585,7 @@ export default function SettingsPage() {
             {selectedWeek === 'default' ? (
               <span className={styles.weekBadgeDefault}>Áp dụng chung</span>
             ) : isCustomizedWeek ? (
-              <span className={styles.weekBadgeCustom}>✨ Đang dùng lịch riêng của tuần</span>
+              <span className={styles.weekBadgeCustom}>Đang dùng lịch riêng của tuần</span>
             ) : (
               <span className={styles.weekBadgeDefault}>Đang kế thừa từ lịch mặc định</span>
             )}
