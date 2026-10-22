@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import * as ExcelJS from 'exceljs';
 import { Attendance, AttendanceSession, AttendanceStatus } from '../../entities/attendance.entity';
 import { Student } from '../../entities/student.entity';
-import { Settings, DEFAULT_SCHEDULE } from '../../entities/settings.entity';
+import { Settings, DEFAULT_SCHEDULE, getScheduleForDate } from '../../entities/settings.entity';
 import { SettingsService } from '../settings/settings.service';
 import { getTodayVN, getCurrentTimeVN, compareTime } from '../../utils/geo.util';
 
@@ -88,14 +88,14 @@ export class ExportService {
     const sheet = workbook.addWorksheet('Điểm danh ngày');
 
     // ── Title ──
-    sheet.mergeCells('A1:I1');
+    sheet.mergeCells('A1:K1');
     const titleCell = sheet.getCell('A1');
     titleCell.value = 'ĐÀI TRUYỀN HÌNH VIỆT NAM - TRƯỜNG CAO ĐẲNG TRUYỀN HÌNH';
     titleCell.font = { bold: true, size: 13, color: { argb: 'FF1E3A5F' } };
     titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
     sheet.getRow(1).height = 25;
 
-    sheet.mergeCells('A2:I2');
+    sheet.mergeCells('A2:K2');
     const dateCell = sheet.getCell('A2');
     const [y, m, d] = date.split('-');
     dateCell.value = `BẢNG ĐIỂM DANH LỚP CQP 22 - NGÀY ${d}/${m}/${y}`;
@@ -113,8 +113,10 @@ export class ExportService {
       { col: 'E', text: 'TT Sáng', width: 12 },
       { col: 'F', text: 'Giờ vào\n(Chiều)', width: 12 },
       { col: 'G', text: 'TT Chiều', width: 12 },
-      { col: 'H', text: 'Tổng kết\nngày', width: 13 },
-      { col: 'I', text: 'Ghi chú', width: 20 },
+      { col: 'H', text: 'Giờ vào\n(Tối)', width: 12 },
+      { col: 'I', text: 'TT Tối', width: 12 },
+      { col: 'J', text: 'Tổng kết\nngày', width: 13 },
+      { col: 'K', text: 'Ghi chú', width: 20 },
     ];
 
     headers.forEach(({ col, text, width }) => {
@@ -135,17 +137,22 @@ export class ExportService {
       const afternoonRec = attendances.find(
         (a) => a.studentId === student.id && a.session === AttendanceSession.AFTERNOON,
       );
+      const eveningRec = attendances.find(
+        (a) => a.studentId === student.id && a.session === AttendanceSession.EVENING,
+      );
 
       const morningStatus = morningRec?.status ?? null;
       const afternoonStatus = afternoonRec?.status ?? null;
+      const eveningStatus = eveningRec?.status ?? null;
 
       // Determine daily summary
+      const statuses = [morningStatus, afternoonStatus, eveningStatus].filter(Boolean) as AttendanceStatus[];
       let dailyStatus: AttendanceStatus;
-      if (morningStatus === AttendanceStatus.LATE || afternoonStatus === AttendanceStatus.LATE) {
+      if (statuses.some((s) => s === AttendanceStatus.LATE)) {
         dailyStatus = AttendanceStatus.LATE;
-      } else if (morningStatus === AttendanceStatus.PRESENT || afternoonStatus === AttendanceStatus.PRESENT) {
+      } else if (statuses.some((s) => s === AttendanceStatus.PRESENT)) {
         dailyStatus = AttendanceStatus.PRESENT;
-      } else if (morningStatus === AttendanceStatus.EXCUSED || afternoonStatus === AttendanceStatus.EXCUSED) {
+      } else if (statuses.some((s) => s === AttendanceStatus.EXCUSED)) {
         dailyStatus = AttendanceStatus.EXCUSED;
       } else {
         dailyStatus = AttendanceStatus.ABSENT;
@@ -182,7 +189,6 @@ export class ExportService {
       this.styleDataCell(
         sheet.getCell(`D${rowNum}`),
         morningRec?.checkInTime ? morningRec.checkInTime.substring(0, 5) : '--',
-        morningStatus ? undefined : undefined,
       );
       sheet.getCell(`D${rowNum}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgAlternate } };
       sheet.getCell(`D${rowNum}`).font = { size: 10, color: { argb: 'FF374151' } };
@@ -211,19 +217,35 @@ export class ExportService {
         true,
       );
 
-      // Daily summary
+      // Evening check-in time
       this.styleDataCell(
         sheet.getCell(`H${rowNum}`),
+        eveningRec?.checkInTime ? eveningRec.checkInTime.substring(0, 5) : '--',
+      );
+      sheet.getCell(`H${rowNum}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgAlternate } };
+      sheet.getCell(`H${rowNum}`).font = { size: 10, color: { argb: 'FF374151' } };
+
+      // Evening status
+      this.styleDataCell(
+        sheet.getCell(`I${rowNum}`),
+        this.getStatusLabel(eveningStatus),
+        this.getStatusColor(eveningStatus),
+        true,
+      );
+
+      // Daily summary
+      this.styleDataCell(
+        sheet.getCell(`J${rowNum}`),
         this.getStatusLabel(dailyStatus),
         this.getStatusColor(dailyStatus),
         true,
       );
 
       // Note
-      const note = morningRec?.note || afternoonRec?.note || '';
-      this.styleDataCell(sheet.getCell(`I${rowNum}`), note, undefined, false, 'left');
-      sheet.getCell(`I${rowNum}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgAlternate } };
-      sheet.getCell(`I${rowNum}`).font = { size: 10, color: { argb: 'FF374151' } };
+      const note = morningRec?.note || afternoonRec?.note || eveningRec?.note || '';
+      this.styleDataCell(sheet.getCell(`K${rowNum}`), note, undefined, false, 'left');
+      sheet.getCell(`K${rowNum}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgAlternate } };
+      sheet.getCell(`K${rowNum}`).font = { size: 10, color: { argb: 'FF374151' } };
 
       row.height = 22;
     });
@@ -283,12 +305,12 @@ export class ExportService {
       .getMany();
 
     const settings = await this.settingsService.getSettings();
-    const schedule = settings.schedule || DEFAULT_SCHEDULE;
     const today = getTodayVN();
     const currentTime = getCurrentTimeVN();
     const startDate = settings.startDate || today;
     const morningLateEnd = settings.morningLateEnd || '08:15';
     const afternoonLateEnd = settings.afternoonLateEnd || '13:45';
+    const eveningLateEnd = settings.eveningLateEnd || '18:45';
 
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet('Tổng hợp tuần');
@@ -296,7 +318,7 @@ export class ExportService {
     const DAY_NAMES = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
 
     // ── Title ──
-    const totalCols = 3 + dates.length * 2 + 4;
+    const totalCols = 3 + dates.length * 3 + 4;
     sheet.mergeCells(1, 1, 1, totalCols);
     const t1 = sheet.getCell(1, 1);
     t1.value = 'ĐÀI TRUYỀN HÌNH VIỆT NAM - TRƯỜNG CAO ĐẲNG TRUYỀN HÌNH';
@@ -328,16 +350,17 @@ export class ExportService {
     sheet.getColumn(3).width = 14;
 
     let col = 4;
-    dates.forEach((date, i) => {
+    dates.forEach((date) => {
       const dateObj = new Date(date);
       const dayName = DAY_NAMES[dateObj.getDay()];
       const [, dm, dd] = date.split('-');
-      sheet.mergeCells(3, col, 3, col + 1);
+      sheet.mergeCells(3, col, 3, col + 2);
       this.styleHeaderCell(sheet.getCell(3, col), `${dayName}\n${dd}/${dm}`);
       sheet.getCell(3, col).alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-      sheet.getColumn(col).width = 7;
-      sheet.getColumn(col + 1).width = 7;
-      col += 2;
+      sheet.getColumn(col).width = 6;
+      sheet.getColumn(col + 1).width = 6;
+      sheet.getColumn(col + 2).width = 6;
+      col += 3;
     });
 
     // Summary headers
@@ -347,12 +370,12 @@ export class ExportService {
     });
     sheet.getRow(3).height = 35;
 
-    // ── Header Row 2: S/C sub-headers ──
+    // ── Header Row 2: S/C/T sub-headers ──
     // STT, Name, and DOB span 2 rows
     sheet.mergeCells(3, 1, 4, 1);
     sheet.mergeCells(3, 2, 4, 2);
     sheet.mergeCells(3, 3, 4, 3);
-    const summaryStartCol = 4 + dates.length * 2;
+    const summaryStartCol = 4 + dates.length * 3;
     sheet.mergeCells(3, summaryStartCol, 4, summaryStartCol);
     sheet.mergeCells(3, summaryStartCol + 1, 4, summaryStartCol + 1);
     sheet.mergeCells(3, summaryStartCol + 2, 4, summaryStartCol + 2);
@@ -362,7 +385,8 @@ export class ExportService {
     dates.forEach(() => {
       this.styleHeaderCell(sheet.getCell(4, col2), 'S');
       this.styleHeaderCell(sheet.getCell(4, col2 + 1), 'C');
-      col2 += 2;
+      this.styleHeaderCell(sheet.getCell(4, col2 + 2), 'T');
+      col2 += 3;
     });
     sheet.getRow(4).height = 20;
 
@@ -395,15 +419,21 @@ export class ExportService {
         const afternoonRec = attendances.find(
           (a) => a.studentId === student.id && a.date === date && a.session === AttendanceSession.AFTERNOON,
         );
+        const eveningRec = attendances.find(
+          (a) => a.studentId === student.id && a.date === date && a.session === AttendanceSession.EVENING,
+        );
 
         const dateObj = new Date(date);
         const dow = String(dateObj.getDay());
-        const morningScheduled = schedule[dow]?.includes('morning') ?? true;
-        const afternoonScheduled = schedule[dow]?.includes('afternoon') ?? true;
+        const daySchedule = getScheduleForDate(settings, date);
+        const morningScheduled = daySchedule[dow]?.includes('morning') ?? true;
+        const afternoonScheduled = daySchedule[dow]?.includes('afternoon') ?? true;
+        const eveningScheduled = daySchedule[dow]?.includes('evening') ?? false;
 
         const isPastStart = date >= startDate;
         const isMorningPassed = isPastStart && (date < today || (date === today && compareTime(currentTime, morningLateEnd) > 0));
         const isAfternoonPassed = isPastStart && (date < today || (date === today && compareTime(currentTime, afternoonLateEnd) > 0));
+        const isEveningPassed = isPastStart && (date < today || (date === today && compareTime(currentTime, eveningLateEnd) > 0));
 
         // Morning session
         let mLabel = '–';
@@ -418,7 +448,6 @@ export class ExportService {
           else if (morningRec.status === AttendanceStatus.EXCUSED) cntExcused++;
           else if (morningRec.status === AttendanceStatus.ABSENT) cntAbsent++;
         } else if (morningScheduled && isMorningPassed) {
-          // Scheduled session has ended but student was not checked in -> VẮNG!
           mLabel = '✗';
           mColor = STATUS_COLORS[AttendanceStatus.ABSENT];
           cntAbsent++;
@@ -437,16 +466,34 @@ export class ExportService {
           else if (afternoonRec.status === AttendanceStatus.EXCUSED) cntExcused++;
           else if (afternoonRec.status === AttendanceStatus.ABSENT) cntAbsent++;
         } else if (afternoonScheduled && isAfternoonPassed) {
-          // Scheduled session has ended but student was not checked in -> VẮNG!
           aLabel = '✗';
           aColor = STATUS_COLORS[AttendanceStatus.ABSENT];
           cntAbsent++;
         }
 
+        // Evening session
+        let eLabel = '–';
+        let eColor: string | undefined = undefined;
+        if (eveningRec) {
+          eLabel = eveningRec.status === AttendanceStatus.PRESENT ? '✓'
+            : eveningRec.status === AttendanceStatus.LATE ? 'M'
+            : eveningRec.status === AttendanceStatus.EXCUSED ? 'P' : '✗';
+          eColor = this.getStatusColor(eveningRec.status);
+          if (eveningRec.status === AttendanceStatus.PRESENT) cntPresent++;
+          else if (eveningRec.status === AttendanceStatus.LATE) cntLate++;
+          else if (eveningRec.status === AttendanceStatus.EXCUSED) cntExcused++;
+          else if (eveningRec.status === AttendanceStatus.ABSENT) cntAbsent++;
+        } else if (eveningScheduled && isEveningPassed) {
+          eLabel = '✗';
+          eColor = STATUS_COLORS[AttendanceStatus.ABSENT];
+          cntAbsent++;
+        }
+
         this.styleDataCell(sheet.getCell(rowNum, dataCol), mLabel, mColor, mLabel !== '–');
         this.styleDataCell(sheet.getCell(rowNum, dataCol + 1), aLabel, aColor, aLabel !== '–');
+        this.styleDataCell(sheet.getCell(rowNum, dataCol + 2), eLabel, eColor, eLabel !== '–');
 
-        dataCol += 2;
+        dataCol += 3;
       });
 
       // Summary counts
@@ -492,12 +539,12 @@ export class ExportService {
       .getMany();
 
     const settings = await this.settingsService.getSettings();
-    const schedule = settings.schedule || DEFAULT_SCHEDULE;
     const today = getTodayVN();
     const currentTime = getCurrentTimeVN();
     const startDate = settings.startDate || today;
     const morningLateEnd = settings.morningLateEnd || '08:15';
     const afternoonLateEnd = settings.afternoonLateEnd || '13:45';
+    const eveningLateEnd = settings.eveningLateEnd || '18:45';
 
     const workbook = new ExcelJS.Workbook();
     const sheet = workbook.addWorksheet(`Tháng ${mStr}-${yStr}`);
@@ -505,7 +552,7 @@ export class ExportService {
     const DAY_NAMES = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
 
     // ── Title ──
-    const totalCols = 3 + dates.length * 2 + 5;
+    const totalCols = 3 + dates.length * 3 + 5;
     sheet.mergeCells(1, 1, 1, totalCols);
     const t1 = sheet.getCell(1, 1);
     t1.value = 'ĐÀI TRUYỀN HÌNH VIỆT NAM - TRƯỜNG CAO ĐẲNG TRUYỀN HÌNH';
@@ -539,12 +586,13 @@ export class ExportService {
       const dateObj = new Date(date);
       const dayName = DAY_NAMES[dateObj.getDay()];
       const [, dm, dd] = date.split('-');
-      sheet.mergeCells(3, col, 3, col + 1);
+      sheet.mergeCells(3, col, 3, col + 2);
       this.styleHeaderCell(sheet.getCell(3, col), `${dayName}\n${dd}/${dm}`);
       sheet.getCell(3, col).alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
       sheet.getColumn(col).width = 6;
       sheet.getColumn(col + 1).width = 6;
-      col += 2;
+      sheet.getColumn(col + 2).width = 6;
+      col += 3;
     });
 
     // Summary headers
@@ -554,11 +602,11 @@ export class ExportService {
     });
     sheet.getRow(3).height = 35;
 
-    // ── Header Row 2: S/C sub-headers ──
+    // ── Header Row 2: S/C/T sub-headers ──
     sheet.mergeCells(3, 1, 4, 1);
     sheet.mergeCells(3, 2, 4, 2);
     sheet.mergeCells(3, 3, 4, 3);
-    const summaryStartCol = 4 + dates.length * 2;
+    const summaryStartCol = 4 + dates.length * 3;
     sheet.mergeCells(3, summaryStartCol, 4, summaryStartCol);
     sheet.mergeCells(3, summaryStartCol + 1, 4, summaryStartCol + 1);
     sheet.mergeCells(3, summaryStartCol + 2, 4, summaryStartCol + 2);
@@ -569,7 +617,8 @@ export class ExportService {
     dates.forEach(() => {
       this.styleHeaderCell(sheet.getCell(4, col2), 'S');
       this.styleHeaderCell(sheet.getCell(4, col2 + 1), 'C');
-      col2 += 2;
+      this.styleHeaderCell(sheet.getCell(4, col2 + 2), 'T');
+      col2 += 3;
     });
     sheet.getRow(4).height = 20;
 
@@ -603,20 +652,27 @@ export class ExportService {
         const afternoonRec = attendances.find(
           (a) => a.studentId === student.id && a.date === date && a.session === AttendanceSession.AFTERNOON,
         );
+        const eveningRec = attendances.find(
+          (a) => a.studentId === student.id && a.date === date && a.session === AttendanceSession.EVENING,
+        );
 
         const dateObj = new Date(date);
         const dow = String(dateObj.getDay());
-        const morningScheduled = schedule[dow]?.includes('morning') ?? true;
-        const afternoonScheduled = schedule[dow]?.includes('afternoon') ?? true;
+        const daySchedule = getScheduleForDate(settings, date);
+        const morningScheduled = daySchedule[dow]?.includes('morning') ?? true;
+        const afternoonScheduled = daySchedule[dow]?.includes('afternoon') ?? true;
+        const eveningScheduled = daySchedule[dow]?.includes('evening') ?? false;
 
         const isPastStart = date >= startDate;
         if (isPastStart) {
           if (morningScheduled) totalScheduled++;
           if (afternoonScheduled) totalScheduled++;
+          if (eveningScheduled) totalScheduled++;
         }
 
         const isMorningPassed = isPastStart && (date < today || (date === today && compareTime(currentTime, morningLateEnd) > 0));
         const isAfternoonPassed = isPastStart && (date < today || (date === today && compareTime(currentTime, afternoonLateEnd) > 0));
+        const isEveningPassed = isPastStart && (date < today || (date === today && compareTime(currentTime, eveningLateEnd) > 0));
 
         // Morning session
         let mLabel = '–';
@@ -654,10 +710,29 @@ export class ExportService {
           cntAbsent++;
         }
 
+        // Evening session
+        let eLabel = '–';
+        let eColor: string | undefined = undefined;
+        if (eveningRec) {
+          eLabel = eveningRec.status === AttendanceStatus.PRESENT ? '✓'
+            : eveningRec.status === AttendanceStatus.LATE ? 'M'
+            : eveningRec.status === AttendanceStatus.EXCUSED ? 'P' : '✗';
+          eColor = this.getStatusColor(eveningRec.status);
+          if (eveningRec.status === AttendanceStatus.PRESENT) cntPresent++;
+          else if (eveningRec.status === AttendanceStatus.LATE) cntLate++;
+          else if (eveningRec.status === AttendanceStatus.EXCUSED) cntExcused++;
+          else if (eveningRec.status === AttendanceStatus.ABSENT) cntAbsent++;
+        } else if (eveningScheduled && isEveningPassed) {
+          eLabel = '✗';
+          eColor = STATUS_COLORS[AttendanceStatus.ABSENT];
+          cntAbsent++;
+        }
+
         this.styleDataCell(sheet.getCell(rowNum, dataCol), mLabel, mColor, mLabel !== '–');
         this.styleDataCell(sheet.getCell(rowNum, dataCol + 1), aLabel, aColor, aLabel !== '–');
+        this.styleDataCell(sheet.getCell(rowNum, dataCol + 2), eLabel, eColor, eLabel !== '–');
 
-        dataCol += 2;
+        dataCol += 3;
       });
 
       // Summary counts

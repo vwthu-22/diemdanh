@@ -12,6 +12,7 @@ import { Student } from './student.entity';
 export enum AttendanceSession {
   MORNING = 'morning',
   AFTERNOON = 'afternoon',
+  EVENING = 'evening',
 }
 
 export enum AttendanceStatus {

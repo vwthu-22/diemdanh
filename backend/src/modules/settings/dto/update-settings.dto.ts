@@ -48,9 +48,25 @@ export class UpdateSettingsDto {
 
   @IsOptional()
   @IsString()
+  eveningStart?: string;
+
+  @IsOptional()
+  @IsString()
+  eveningOnTimeEnd?: string;
+
+  @IsOptional()
+  @IsString()
+  eveningLateEnd?: string;
+
+  @IsOptional()
+  @IsString()
   startDate?: string;
 
   @IsOptional()
   @IsObject()
   schedule?: Record<string, string[]>;
+
+  @IsOptional()
+  @IsObject()
+  weeklySchedules?: Record<string, Record<string, string[]>>;
 }

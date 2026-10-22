@@ -12,7 +12,11 @@ import {
   AttendanceStatus,
 } from '../../entities/attendance.entity';
 import { Student } from '../../entities/student.entity';
-import { Settings, DEFAULT_SCHEDULE } from '../../entities/settings.entity';
+import {
+  Settings,
+  DEFAULT_SCHEDULE,
+  getScheduleForDate,
+} from '../../entities/settings.entity';
 import { SettingsService } from '../settings/settings.service';
 import { CheckInDto } from './dto/checkin.dto';
 import {
@@ -60,11 +64,18 @@ export class AttendanceService {
         onTimeEnd: settings.afternoonOnTimeEnd,
         lateEnd: settings.afternoonLateEnd,
       },
+      {
+        session: AttendanceSession.EVENING,
+        label: 'Buổi tối',
+        start: settings.eveningStart || '18:00',
+        onTimeEnd: settings.eveningOnTimeEnd || '18:15',
+        lateEnd: settings.eveningLateEnd || '18:45',
+      },
     ];
 
     const now = getVietnamNow();
     const dow = String(now.getDay());
-    const schedule = settings.schedule || DEFAULT_SCHEDULE;
+    const schedule = getScheduleForDate(settings, today);
 
     const result = sessions.map((s) => {
       const isScheduled = schedule[dow]?.includes(s.session) ?? true;
@@ -133,19 +144,28 @@ export class AttendanceService {
       sessionStart = settings.morningStart;
       sessionOnTimeEnd = settings.morningOnTimeEnd;
       sessionLateEnd = settings.morningLateEnd;
-    } else {
+    } else if (dto.session === AttendanceSession.AFTERNOON) {
       sessionStart = settings.afternoonStart;
       sessionOnTimeEnd = settings.afternoonOnTimeEnd;
       sessionLateEnd = settings.afternoonLateEnd;
+    } else {
+      sessionStart = settings.eveningStart || '18:00';
+      sessionOnTimeEnd = settings.eveningOnTimeEnd || '18:15';
+      sessionLateEnd = settings.eveningLateEnd || '18:45';
     }
+
+    const sessionLabel =
+      dto.session === AttendanceSession.MORNING
+        ? 'sáng'
+        : dto.session === AttendanceSession.AFTERNOON
+        ? 'chiều'
+        : 'tối';
 
     // 2.5 Kiểm tra lịch học buổi này có theo thời khóa biểu không
     const dow = String(now.getDay());
-    const schedule = settings.schedule || DEFAULT_SCHEDULE;
+    const schedule = getScheduleForDate(settings, today);
     const isScheduled = schedule[dow]?.includes(dto.session) ?? true;
     if (!isScheduled) {
-      const sessionLabel =
-        dto.session === AttendanceSession.MORNING ? 'sáng' : 'chiều';
       throw new ForbiddenException(
         `Hôm nay lớp không có lịch học buổi ${sessionLabel} theo thời khóa biểu!`,
       );
@@ -156,8 +176,6 @@ export class AttendanceService {
       compareTime(currentTime, sessionStart) < 0 ||
       compareTime(currentTime, sessionLateEnd) > 0
     ) {
-      const sessionLabel =
-        dto.session === AttendanceSession.MORNING ? 'sáng' : 'chiều';
       throw new ForbiddenException(
         `Cổng điểm danh buổi ${sessionLabel} đã đóng. Khung giờ: ${sessionStart} - ${sessionLateEnd}`,
       );
@@ -206,7 +224,7 @@ export class AttendanceService {
 
     if (alreadyCheckedIn) {
       throw new BadRequestException(
-        `Bạn đã điểm danh buổi ${dto.session === AttendanceSession.MORNING ? 'sáng' : 'chiều'} hôm nay rồi! (lúc ${alreadyCheckedIn.checkInTime})`,
+        `Bạn đã điểm danh buổi ${sessionLabel} hôm nay rồi! (lúc ${alreadyCheckedIn.checkInTime})`,
       );
     }
 
@@ -279,11 +297,17 @@ export class AttendanceService {
           a.studentId === student.id &&
           a.session === AttendanceSession.AFTERNOON,
       );
+      const evening = attendances.find(
+        (a) =>
+          a.studentId === student.id &&
+          a.session === AttendanceSession.EVENING,
+      );
 
       return {
         student,
         morning: morning || null,
         afternoon: afternoon || null,
+        evening: evening || null,
       };
     });
   }
@@ -318,11 +342,13 @@ export class AttendanceService {
       dates,
       attendances,
       schedule: settings.schedule || DEFAULT_SCHEDULE,
+      weeklySchedules: settings.weeklySchedules || {},
       today: getTodayVN(),
       currentTime: getCurrentTimeVN(),
       settings: {
         morningLateEnd: settings.morningLateEnd,
         afternoonLateEnd: settings.afternoonLateEnd,
+        eveningLateEnd: settings.eveningLateEnd || '18:45',
         startDate: settings.startDate || getTodayVN(),
       },
     };
@@ -380,13 +406,17 @@ export class AttendanceService {
    */
   async markBulkAttendance(
     date: string,
-    session: AttendanceSession | 'both',
+    session: AttendanceSession | 'both' | 'all',
     status: AttendanceStatus = AttendanceStatus.PRESENT,
   ) {
     const students = await this.studentRepo.find({ order: { orderNum: 'ASC' } });
     const sessions: AttendanceSession[] =
-      session === 'both'
-        ? [AttendanceSession.MORNING, AttendanceSession.AFTERNOON]
+      session === 'both' || session === 'all'
+        ? [
+            AttendanceSession.MORNING,
+            AttendanceSession.AFTERNOON,
+            AttendanceSession.EVENING,
+          ]
         : [session];
 
     const now = getVietnamNow();

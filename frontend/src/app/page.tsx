@@ -12,6 +12,7 @@ const FaceEnrollModal = lazy(() => import('./FaceEnrollModal'));
 const SESSION_LABELS: Record<AttendanceSession, string> = {
   morning: 'Buổi Sáng',
   afternoon: 'Buổi Chiều',
+  evening: 'Buổi Tối',
 };
 
 const STATUS_MAP: Record<string, { label: string; className: string }> = {

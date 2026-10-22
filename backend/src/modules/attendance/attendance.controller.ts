@@ -98,7 +98,7 @@ export class AttendanceController {
     @Body()
     body: {
       date: string;
-      session: AttendanceSession | 'both';
+      session: AttendanceSession | 'both' | 'all';
       status?: AttendanceStatus;
     },
   ) {

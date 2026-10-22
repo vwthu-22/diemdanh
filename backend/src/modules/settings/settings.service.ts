@@ -32,6 +32,10 @@ export class SettingsService implements OnModuleInit {
         `ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "afternoon_start" varchar(255) DEFAULT '13:00'`,
         `ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "afternoon_on_time_end" varchar(255) DEFAULT '13:15'`,
         `ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "afternoon_late_end" varchar(255) DEFAULT '13:45'`,
+        `ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "evening_start" varchar(255) DEFAULT '18:00'`,
+        `ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "evening_on_time_end" varchar(255) DEFAULT '18:15'`,
+        `ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "evening_late_end" varchar(255) DEFAULT '18:45'`,
+        `ALTER TABLE "settings" ADD COLUMN IF NOT EXISTS "weekly_schedules" text`,
       ];
 
       for (const query of postgresColumns) {
@@ -40,8 +44,8 @@ export class SettingsService implements OnModuleInit {
 
       // Đảm bảo có bản ghi id = 1
       await this.settingsRepo.query(`
-        INSERT INTO "settings" ("school_lat", "school_lng", "radius_meters", "morning_start", "morning_on_time_end", "morning_late_end", "afternoon_start", "afternoon_on_time_end", "afternoon_late_end", "start_date", "schedule")
-        SELECT 20.868382, 105.857279, 100, '07:30', '07:45', '08:15', '13:00', '13:15', '13:45', '2026-09-15', '${JSON.stringify(DEFAULT_SCHEDULE)}'
+        INSERT INTO "settings" ("school_lat", "school_lng", "radius_meters", "morning_start", "morning_on_time_end", "morning_late_end", "afternoon_start", "afternoon_on_time_end", "afternoon_late_end", "evening_start", "evening_on_time_end", "evening_late_end", "start_date", "schedule", "weekly_schedules")
+        SELECT 20.868382, 105.857279, 100, '07:30', '07:45', '08:15', '13:00', '13:15', '13:45', '18:00', '18:15', '18:45', '2026-09-15', '${JSON.stringify(DEFAULT_SCHEDULE)}', '{}'
         WHERE NOT EXISTS (SELECT 1 FROM "settings");
       `).catch(() => {});
     } catch {
@@ -49,6 +53,10 @@ export class SettingsService implements OnModuleInit {
       try {
         await this.settingsRepo.query(`ALTER TABLE settings ADD COLUMN schedule text`).catch(() => {});
         await this.settingsRepo.query(`ALTER TABLE settings ADD COLUMN start_date varchar DEFAULT '2026-09-15'`).catch(() => {});
+        await this.settingsRepo.query(`ALTER TABLE settings ADD COLUMN evening_start varchar DEFAULT '18:00'`).catch(() => {});
+        await this.settingsRepo.query(`ALTER TABLE settings ADD COLUMN evening_on_time_end varchar DEFAULT '18:15'`).catch(() => {});
+        await this.settingsRepo.query(`ALTER TABLE settings ADD COLUMN evening_late_end varchar DEFAULT '18:45'`).catch(() => {});
+        await this.settingsRepo.query(`ALTER TABLE settings ADD COLUMN weekly_schedules text`).catch(() => {});
       } catch {}
     }
   }
@@ -67,8 +75,12 @@ export class SettingsService implements OnModuleInit {
           afternoonStart: '13:00',
           afternoonOnTimeEnd: '13:15',
           afternoonLateEnd: '13:45',
+          eveningStart: '18:00',
+          eveningOnTimeEnd: '18:15',
+          eveningLateEnd: '18:45',
           startDate: '2026-09-15',
           schedule: DEFAULT_SCHEDULE,
+          weeklySchedules: {},
         });
         settings = await this.settingsRepo.save(settings);
       }
@@ -86,6 +98,12 @@ export class SettingsService implements OnModuleInit {
               sched = typeof row.schedule === 'string' ? JSON.parse(row.schedule) : row.schedule;
             } catch {}
           }
+          let weeklyScheds = {};
+          if (row.weekly_schedules) {
+            try {
+              weeklyScheds = typeof row.weekly_schedules === 'string' ? JSON.parse(row.weekly_schedules) : row.weekly_schedules;
+            } catch {}
+          }
           return {
             id: row.id || 1,
             schoolLat: Number(row.school_lat ?? 20.868382),
@@ -97,8 +115,12 @@ export class SettingsService implements OnModuleInit {
             afternoonStart: row.afternoon_start || '13:00',
             afternoonOnTimeEnd: row.afternoon_on_time_end || '13:15',
             afternoonLateEnd: row.afternoon_late_end || '13:45',
+            eveningStart: row.evening_start || '18:00',
+            eveningOnTimeEnd: row.evening_on_time_end || '18:15',
+            eveningLateEnd: row.evening_late_end || '18:45',
             startDate: row.start_date || '2026-09-15',
             schedule: sched,
+            weeklySchedules: weeklyScheds,
           } as Settings;
         }
       } catch (rawErr) {
@@ -122,6 +144,9 @@ export class SettingsService implements OnModuleInit {
       const afternoonStart = dto.afternoonStart ? String(dto.afternoonStart).trim() : current.afternoonStart;
       const afternoonOnTimeEnd = dto.afternoonOnTimeEnd ? String(dto.afternoonOnTimeEnd).trim() : current.afternoonOnTimeEnd;
       const afternoonLateEnd = dto.afternoonLateEnd ? String(dto.afternoonLateEnd).trim() : current.afternoonLateEnd;
+      const eveningStart = dto.eveningStart ? String(dto.eveningStart).trim() : current.eveningStart;
+      const eveningOnTimeEnd = dto.eveningOnTimeEnd ? String(dto.eveningOnTimeEnd).trim() : current.eveningOnTimeEnd;
+      const eveningLateEnd = dto.eveningLateEnd ? String(dto.eveningLateEnd).trim() : current.eveningLateEnd;
       const startDate = dto.startDate ? String(dto.startDate).trim() : current.startDate;
 
       let scheduleObj = current.schedule || DEFAULT_SCHEDULE;
@@ -138,6 +163,20 @@ export class SettingsService implements OnModuleInit {
       }
       const scheduleStr = JSON.stringify(scheduleObj);
 
+      let weeklySchedulesObj = current.weeklySchedules || {};
+      if (dto.weeklySchedules !== undefined) {
+        if (typeof dto.weeklySchedules === 'string') {
+          try {
+            weeklySchedulesObj = JSON.parse(dto.weeklySchedules);
+          } catch {
+            weeklySchedulesObj = {};
+          }
+        } else {
+          weeklySchedulesObj = dto.weeklySchedules;
+        }
+      }
+      const weeklySchedulesStr = JSON.stringify(weeklySchedulesObj);
+
       // 2. Thử lưu bằng TypeORM Entity
       try {
         let entity = await this.settingsRepo.findOne({ order: { id: 'ASC' } });
@@ -153,8 +192,12 @@ export class SettingsService implements OnModuleInit {
         entity.afternoonStart = afternoonStart;
         entity.afternoonOnTimeEnd = afternoonOnTimeEnd;
         entity.afternoonLateEnd = afternoonLateEnd;
+        entity.eveningStart = eveningStart;
+        entity.eveningOnTimeEnd = eveningOnTimeEnd;
+        entity.eveningLateEnd = eveningLateEnd;
         entity.startDate = startDate;
         entity.schedule = scheduleObj;
+        entity.weeklySchedules = weeklySchedulesObj;
 
         const saved = await this.settingsRepo.save(entity);
         return this.sanitizeSettings(saved);
@@ -175,8 +218,12 @@ export class SettingsService implements OnModuleInit {
             "afternoon_start" = $7,
             "afternoon_on_time_end" = $8,
             "afternoon_late_end" = $9,
-            "start_date" = $10,
-            "schedule" = $11
+            "evening_start" = $10,
+            "evening_on_time_end" = $11,
+            "evening_late_end" = $12,
+            "start_date" = $13,
+            "schedule" = $14,
+            "weekly_schedules" = $15
           WHERE "id" = (SELECT "id" FROM "settings" ORDER BY "id" ASC LIMIT 1)`,
           [
             schoolLat,
@@ -188,8 +235,12 @@ export class SettingsService implements OnModuleInit {
             afternoonStart,
             afternoonOnTimeEnd,
             afternoonLateEnd,
+            eveningStart,
+            eveningOnTimeEnd,
+            eveningLateEnd,
             startDate,
             scheduleStr,
+            weeklySchedulesStr,
           ],
         );
       } catch (pgErr) {
@@ -206,8 +257,12 @@ export class SettingsService implements OnModuleInit {
               afternoon_start = ?,
               afternoon_on_time_end = ?,
               afternoon_late_end = ?,
+              evening_start = ?,
+              evening_on_time_end = ?,
+              evening_late_end = ?,
               start_date = ?,
-              schedule = ?
+              schedule = ?,
+              weekly_schedules = ?
             WHERE id = (SELECT id FROM settings ORDER BY id ASC LIMIT 1)`,
             [
               schoolLat,
@@ -219,8 +274,12 @@ export class SettingsService implements OnModuleInit {
               afternoonStart,
               afternoonOnTimeEnd,
               afternoonLateEnd,
+              eveningStart,
+              eveningOnTimeEnd,
+              eveningLateEnd,
               startDate,
               scheduleStr,
+              weeklySchedulesStr,
             ],
           );
         } catch (sqliteErr) {
@@ -239,8 +298,12 @@ export class SettingsService implements OnModuleInit {
         afternoonStart,
         afternoonOnTimeEnd,
         afternoonLateEnd,
+        eveningStart,
+        eveningOnTimeEnd,
+        eveningLateEnd,
         startDate,
         schedule: scheduleObj,
+        weeklySchedules: weeklySchedulesObj,
       } as Settings;
     } catch (outerErr) {
       console.error('Fatal error in updateSettings:', outerErr);
@@ -260,6 +323,9 @@ export class SettingsService implements OnModuleInit {
     res.afternoonStart = res.afternoonStart || '13:00';
     res.afternoonOnTimeEnd = res.afternoonOnTimeEnd || '13:15';
     res.afternoonLateEnd = res.afternoonLateEnd || '13:45';
+    res.eveningStart = res.eveningStart || '18:00';
+    res.eveningOnTimeEnd = res.eveningOnTimeEnd || '18:15';
+    res.eveningLateEnd = res.eveningLateEnd || '18:45';
     res.startDate = res.startDate || '2026-09-15';
 
     if (!res.schedule) {
@@ -271,6 +337,17 @@ export class SettingsService implements OnModuleInit {
         res.schedule = DEFAULT_SCHEDULE;
       }
     }
+
+    if (!res.weeklySchedules) {
+      res.weeklySchedules = {};
+    } else if (typeof res.weeklySchedules === 'string') {
+      try {
+        res.weeklySchedules = JSON.parse(res.weeklySchedules);
+      } catch {
+        res.weeklySchedules = {};
+      }
+    }
+
     return res;
   }
 
@@ -286,8 +363,12 @@ export class SettingsService implements OnModuleInit {
       afternoonStart: '13:00',
       afternoonOnTimeEnd: '13:15',
       afternoonLateEnd: '13:45',
+      eveningStart: '18:00',
+      eveningOnTimeEnd: '18:15',
+      eveningLateEnd: '18:45',
       startDate: '2026-09-15',
       schedule: DEFAULT_SCHEDULE,
+      weeklySchedules: {},
     } as Settings;
   }
 }

@@ -3,6 +3,7 @@ import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { Settings } from '@/types';
+import { WEEKS_LIST } from '@/data/schedule';
 import styles from './settings.module.css';
 
 const DAYS = [
@@ -28,6 +29,7 @@ const DEFAULT_SCHEDULE: Record<string, string[]> = {
 export default function SettingsPage() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [form, setForm] = useState<Partial<Settings>>({});
+  const [selectedWeek, setSelectedWeek] = useState<string>('default');
   const [loading, setLoading] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
@@ -96,6 +98,9 @@ export default function SettingsPage() {
         ...form,
         radiusMeters: Math.max(0, Math.min(200, Number(form.radiusMeters ?? 100))),
         startDate: form.startDate || '2026-09-15',
+        eveningStart: form.eveningStart || '18:00',
+        eveningOnTimeEnd: form.eveningOnTimeEnd || '18:15',
+        eveningLateEnd: form.eveningLateEnd || '18:45',
       };
       const res = await api.patch<Settings>('/settings', payload);
       if (res.data) {
@@ -118,22 +123,43 @@ export default function SettingsPage() {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const schedule = form.schedule || settings?.schedule || DEFAULT_SCHEDULE;
+  // Lịch học đang được hiển thị và chỉnh sửa (mặc định hoặc theo tuần được chọn)
+  const activeSchedule: Record<string, string[]> = useMemo(() => {
+    if (selectedWeek === 'default') {
+      return form.schedule || settings?.schedule || DEFAULT_SCHEDULE;
+    }
+    return form.weeklySchedules?.[selectedWeek] || form.schedule || settings?.schedule || DEFAULT_SCHEDULE;
+  }, [selectedWeek, form.weeklySchedules, form.schedule, settings?.schedule]);
 
-  const toggleSchedule = (dayKey: string, session: 'morning' | 'afternoon') => {
-    const currentSessions = schedule[dayKey] || [];
+  const isCustomizedWeek = selectedWeek !== 'default' && !!form.weeklySchedules?.[selectedWeek];
+
+  const toggleSchedule = (dayKey: string, session: 'morning' | 'afternoon' | 'evening') => {
+    const currentSessions = activeSchedule[dayKey] || [];
     const hasSession = currentSessions.includes(session);
     const updatedSessions = hasSession
       ? currentSessions.filter((s) => s !== session)
       : [...currentSessions, session];
 
-    setForm((prev) => ({
-      ...prev,
-      schedule: {
-        ...schedule,
-        [dayKey]: updatedSessions,
-      },
-    }));
+    if (selectedWeek === 'default') {
+      setForm((prev) => ({
+        ...prev,
+        schedule: {
+          ...(prev.schedule || DEFAULT_SCHEDULE),
+          [dayKey]: updatedSessions,
+        },
+      }));
+    } else {
+      setForm((prev) => ({
+        ...prev,
+        weeklySchedules: {
+          ...(prev.weeklySchedules || {}),
+          [selectedWeek]: {
+            ...activeSchedule,
+            [dayKey]: updatedSessions,
+          },
+        },
+      }));
+    }
   };
 
   const setPresetSchedule = (type: 'cqp22' | 'all' | 'none') => {
@@ -150,18 +176,41 @@ export default function SettingsPage() {
       };
     } else if (type === 'all') {
       newSched = {
-        '1': ['morning', 'afternoon'],
-        '2': ['morning', 'afternoon'],
-        '3': ['morning', 'afternoon'],
-        '4': ['morning', 'afternoon'],
-        '5': ['morning', 'afternoon'],
-        '6': ['morning', 'afternoon'],
-        '0': ['morning', 'afternoon'],
+        '1': ['morning', 'afternoon', 'evening'],
+        '2': ['morning', 'afternoon', 'evening'],
+        '3': ['morning', 'afternoon', 'evening'],
+        '4': ['morning', 'afternoon', 'evening'],
+        '5': ['morning', 'afternoon', 'evening'],
+        '6': ['morning', 'afternoon', 'evening'],
+        '0': ['morning', 'afternoon', 'evening'],
       };
     } else {
       newSched = { '1': [], '2': [], '3': [], '4': [], '5': [], '6': [], '0': [] };
     }
-    setForm((prev) => ({ ...prev, schedule: newSched }));
+
+    if (selectedWeek === 'default') {
+      setForm((prev) => ({ ...prev, schedule: newSched }));
+    } else {
+      setForm((prev) => ({
+        ...prev,
+        weeklySchedules: {
+          ...(prev.weeklySchedules || {}),
+          [selectedWeek]: newSched,
+        },
+      }));
+    }
+  };
+
+  const resetCurrentWeekSchedule = () => {
+    if (selectedWeek === 'default') return;
+    setForm((prev) => {
+      const nextWeekly = { ...(prev.weeklySchedules || {}) };
+      delete nextWeekly[selectedWeek];
+      return {
+        ...prev,
+        weeklySchedules: nextWeekly,
+      };
+    });
   };
 
   const copyCredentials = () => {
@@ -400,6 +449,49 @@ export default function SettingsPage() {
             </div>
           </div>
 
+          {/* Evening Window */}
+          <div className={styles.timeSessionBox}>
+            <div className={styles.timeSessionHeader}>
+              <span>Ca Tối (Sự kiện / Học tối)</span>
+              <span className={styles.timePillBadge}>
+                {getWindowSummary(form.eveningStart || '18:00', form.eveningOnTimeEnd || '18:15', form.eveningLateEnd || '18:45')}
+              </span>
+            </div>
+
+            <div className={styles.timeFieldGrid}>
+              <div className={styles.timeInputWrap}>
+                <label className={styles.timeInputLabel}>Bắt đầu</label>
+                <input
+                  className="input"
+                  type="time"
+                  value={form.eveningStart || '18:00'}
+                  onChange={(e) => update('eveningStart', e.target.value)}
+                  id="settings-evening-start"
+                />
+              </div>
+              <div className={styles.timeInputWrap}>
+                <label className={styles.timeInputLabel}>Đúng giờ đến</label>
+                <input
+                  className="input"
+                  type="time"
+                  value={form.eveningOnTimeEnd || '18:15'}
+                  onChange={(e) => update('eveningOnTimeEnd', e.target.value)}
+                  id="settings-evening-ontime"
+                />
+              </div>
+              <div className={styles.timeInputWrap}>
+                <label className={styles.timeInputLabel}>Đóng cổng</label>
+                <input
+                  className="input"
+                  type="time"
+                  value={form.eveningLateEnd || '18:45'}
+                  onChange={(e) => update('eveningLateEnd', e.target.value)}
+                  id="settings-evening-late"
+                />
+              </div>
+            </div>
+          </div>
+
           {/* Start Date Setting */}
           <div style={{ marginTop: 16, padding: '14px 16px', background: 'rgba(59, 130, 246, 0.08)', borderRadius: 'var(--radius-md)', border: '1px solid rgba(59, 130, 246, 0.25)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
@@ -427,8 +519,89 @@ export default function SettingsPage() {
         <div className={styles.scheduleHeaderRow}>
           <div>
             <h2 className={styles.sectionTitle}>
-              Thời khóa biểu tuần (Lịch học & Điều khiển ca điểm danh)
+              Thời khóa biểu (Lịch học & Điều khiển ca điểm danh)
             </h2>
+            <p className={styles.sectionDesc} style={{ marginBottom: 0 }}>
+              {selectedWeek === 'default'
+                ? 'Đang xem: Lịch mặc định (áp dụng cho tất cả các tuần chưa cài đặt riêng)'
+                : `Đang tùy chỉnh riêng cho tuần cụ thể. Lịch này sẽ ghi đè lên lịch mặc định của tuần đó.`}
+            </p>
+          </div>
+
+          <div className={styles.presetBar}>
+            <button
+              type="button"
+              className={styles.presetBtn}
+              onClick={() => setPresetSchedule('cqp22')}
+              title="Đặt theo lịch học chuẩn CQP22 (Sáng T2-T6, Chiều T3, T4, T5, T6)"
+            >
+              Lịch chuẩn CQP22
+            </button>
+            <button
+              type="button"
+              className={styles.presetBtn}
+              onClick={() => setPresetSchedule('all')}
+              title="Bật tất cả các ca trong tuần"
+            >
+              Bật tất cả
+            </button>
+            <button
+              type="button"
+              className={styles.presetBtn}
+              onClick={() => setPresetSchedule('none')}
+              title="Nghỉ tất cả các ca trong tuần"
+            >
+              Nghỉ tất cả
+            </button>
+          </div>
+        </div>
+
+        {/* Week Selector Toolbar */}
+        <div className={styles.weekSelectorCard}>
+          <div className={styles.weekSelectorLeft}>
+            <span className={styles.weekSelectorLabel}>
+              📅 Chọn tuần:
+            </span>
+            <select
+              className={styles.weekDropdown}
+              value={selectedWeek}
+              onChange={(e) => setSelectedWeek(e.target.value)}
+              id="settings-week-select"
+            >
+              <option value="default">📋 Lịch mặc định (áp dụng các tuần chưa cài riêng)</option>
+              <optgroup label="Tùy chỉnh riêng từng tuần">
+                {WEEKS_LIST.map((w) => {
+                  const hasCustom = !!form.weeklySchedules?.[w.from];
+                  return (
+                    <option key={w.week} value={w.from}>
+                      Tuần {w.week} ({w.from.split('-').reverse().slice(0, 2).join('/')} – {w.to.split('-').reverse().slice(0, 2).join('/')})
+                      {hasCustom ? ' ★ [Có lịch riêng]' : ''}
+                    </option>
+                  );
+                })}
+              </optgroup>
+            </select>
+
+            {selectedWeek === 'default' ? (
+              <span className={styles.weekBadgeDefault}>Áp dụng chung</span>
+            ) : isCustomizedWeek ? (
+              <span className={styles.weekBadgeCustom}>✨ Đang dùng lịch riêng của tuần</span>
+            ) : (
+              <span className={styles.weekBadgeDefault}>Đang kế thừa từ lịch mặc định</span>
+            )}
+          </div>
+
+          <div className={styles.weekActionsRight}>
+            {selectedWeek !== 'default' && isCustomizedWeek && (
+              <button
+                type="button"
+                className={styles.weekResetBtn}
+                onClick={resetCurrentWeekSchedule}
+                title="Xóa lịch riêng của tuần này và quay lại dùng lịch mặc định"
+              >
+                ✕ Xóa tùy chỉnh (Về mặc định)
+              </button>
+            )}
           </div>
         </div>
 
@@ -449,7 +622,7 @@ export default function SettingsPage() {
                   Buổi Sáng
                 </td>
                 {DAYS.map((d) => {
-                  const active = schedule[d.key]?.includes('morning') ?? false;
+                  const active = activeSchedule[d.key]?.includes('morning') ?? false;
                   return (
                     <td
                       key={`morning-${d.key}`}
@@ -471,7 +644,7 @@ export default function SettingsPage() {
                   Buổi Chiều
                 </td>
                 {DAYS.map((d) => {
-                  const active = schedule[d.key]?.includes('afternoon') ?? false;
+                  const active = activeSchedule[d.key]?.includes('afternoon') ?? false;
                   return (
                     <td
                       key={`afternoon-${d.key}`}
@@ -480,6 +653,28 @@ export default function SettingsPage() {
                     >
                       <div className={`${styles.scheduleToggleCard} ${active ? styles.toggleActive : styles.toggleInactive}`}>
                         <div className={styles.toggleTitle}>{active ? 'Học' : 'Nghỉ'}</div>
+                        <div className={styles.toggleSub}>{active ? 'Có điểm danh' : 'Bỏ qua (không vắng)'}</div>
+                      </div>
+                    </td>
+                  );
+                })}
+              </tr>
+
+              {/* Evening Row */}
+              <tr>
+                <td style={{ fontWeight: 700, textAlign: 'left', color: 'var(--color-text-primary)' }}>
+                  Buổi Tối
+                </td>
+                {DAYS.map((d) => {
+                  const active = activeSchedule[d.key]?.includes('evening') ?? false;
+                  return (
+                    <td
+                      key={`evening-${d.key}`}
+                      className={styles.scheduleCell}
+                      onClick={() => toggleSchedule(d.key, 'evening')}
+                    >
+                      <div className={`${styles.scheduleToggleCard} ${active ? styles.toggleActive : styles.toggleInactive}`}>
+                        <div className={styles.toggleTitle}>{active ? 'Học / Sự kiện' : 'Nghỉ'}</div>
                         <div className={styles.toggleSub}>{active ? 'Có điểm danh' : 'Bỏ qua (không vắng)'}</div>
                       </div>
                     </td>

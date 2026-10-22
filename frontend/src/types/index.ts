@@ -1,4 +1,4 @@
-export type AttendanceSession = 'morning' | 'afternoon';
+export type AttendanceSession = 'morning' | 'afternoon' | 'evening';
 
 export type AttendanceStatus = 'present' | 'late' | 'absent' | 'excused';
 
@@ -47,6 +47,7 @@ export interface DailyAttendanceRow {
   student: Student;
   morning: AttendanceRecord | null;
   afternoon: AttendanceRecord | null;
+  evening?: AttendanceRecord | null;
 }
 
 export interface Settings {
@@ -60,6 +61,11 @@ export interface Settings {
   afternoonStart: string;
   afternoonOnTimeEnd: string;
   afternoonLateEnd: string;
+  eveningStart?: string;
+  eveningOnTimeEnd?: string;
+  eveningLateEnd?: string;
   schedule?: Record<string, string[]>;
+  weeklySchedules?: Record<string, Record<string, string[]>>;
   startDate?: string;
 }
+

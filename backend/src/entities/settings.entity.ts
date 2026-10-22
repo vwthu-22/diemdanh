@@ -34,9 +34,24 @@ export class Settings {
   @Column({ name: 'afternoon_late_end', nullable: true, default: '13:45' })
   afternoonLateEnd: string;
 
-  // Weekly Schedule: day of week (0=CN, 1=T2,... 6=T7) -> ['morning', 'afternoon']
+  // Evening session
+  @Column({ name: 'evening_start', nullable: true, default: '18:00' })
+  eveningStart: string;
+
+  @Column({ name: 'evening_on_time_end', nullable: true, default: '18:15' })
+  eveningOnTimeEnd: string;
+
+  @Column({ name: 'evening_late_end', nullable: true, default: '18:45' })
+  eveningLateEnd: string;
+
+  // Weekly Schedule template: day of week (0=CN, 1=T2,... 6=T7) -> ['morning', 'afternoon', 'evening']
   @Column({ name: 'schedule', type: 'simple-json', nullable: true })
   schedule: Record<string, string[]>;
+
+  // Custom schedule per specific week: { '2026-09-14': { '1': ['morning'], '2': ... } }
+  // Key is the Monday date (YYYY-MM-DD) of that week
+  @Column({ name: 'weekly_schedules', type: 'simple-json', nullable: true })
+  weeklySchedules: Record<string, Record<string, string[]>>;
 
   // Ngày bắt đầu tính điểm danh (mặc định 2026-09-15)
   @Column({ name: 'start_date', nullable: true, default: '2026-09-15' })
@@ -52,3 +67,37 @@ export const DEFAULT_SCHEDULE: Record<string, string[]> = {
   '6': [],
   '0': [],
 };
+
+/**
+ * Lấy ngày Thứ 2 đầu tuần (YYYY-MM-DD) của bất kỳ ngày nào
+ */
+export function getMondayOfWeek(dateStr: string): string {
+  const parts = dateStr.split('-');
+  const y = parseInt(parts[0], 10);
+  const m = parseInt(parts[1], 10);
+  const d = parseInt(parts[2], 10);
+  const date = new Date(Date.UTC(y, m - 1, d));
+  const day = date.getUTCDay(); // 0 = Chủ Nhật, 1 = Thứ 2, ...
+  const diff = (day === 0 ? -6 : 1) - day;
+  date.setUTCDate(date.getUTCDate() + diff);
+  return date.toISOString().slice(0, 10);
+}
+
+/**
+ * Lấy thời khóa biểu cho một ngày cụ thể (ưu tiên lịch riêng của tuần, nếu không có dùng lịch mặc định)
+ */
+export function getScheduleForDate(
+  settings: Settings,
+  dateStr: string,
+): Record<string, string[]> {
+  const monday = getMondayOfWeek(dateStr);
+  if (
+    settings.weeklySchedules &&
+    settings.weeklySchedules[monday] &&
+    typeof settings.weeklySchedules[monday] === 'object'
+  ) {
+    return settings.weeklySchedules[monday];
+  }
+  return settings.schedule || DEFAULT_SCHEDULE;
+}
+
