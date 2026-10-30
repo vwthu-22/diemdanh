@@ -223,12 +223,24 @@ export default function DashboardPage() {
     return d.getDay().toString();
   }, []);
 
+  // Tính ngày Thứ 2 (Monday) của tuần chứa dateStr (giống backend getScheduleForDate)
+  const getWeekStart = useCallback((dateStr: string): string => {
+    const d = new Date(dateStr + 'T00:00:00+07:00');
+    const dow = d.getDay(); // 0=Sun, 1=Mon ... 6=Sat
+    const diff = dow === 0 ? -6 : 1 - dow; // số ngày cần lùi để về Monday
+    d.setDate(d.getDate() + diff);
+    return d.toLocaleDateString('en-CA'); // YYYY-MM-DD
+  }, []);
+
   const isSessionScheduled = useCallback((session: 'morning' | 'afternoon' | 'evening') => {
     const dow = getDayOfWeekKey(date);
-    const schedule = settings?.schedule;
-    if (!schedule) return session !== 'evening'; // evening off by default if no schedule
+    // Ưu tiên lịch riêng theo tuần nếu có (giống backend getScheduleForDate)
+    const weekStart = getWeekStart(date);
+    const weekOverride = settings?.weeklySchedules?.[weekStart];
+    const schedule = weekOverride ?? settings?.schedule;
+    if (!schedule) return session !== 'evening'; // mặc định không có tối
     return schedule[dow]?.includes(session) ?? false;
-  }, [date, getDayOfWeekKey, settings]);
+  }, [date, getDayOfWeekKey, getWeekStart, settings]);
 
   const getEffectiveSessionStatus = useCallback((
     record: AttendanceRecord | null | undefined,
