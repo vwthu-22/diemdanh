@@ -137,12 +137,25 @@ export default function SettingsPage() {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  // Lịch học đang được hiển thị và chỉnh sửa (mặc định hoặc theo tuần được chọn)
+  // Lịch học đang được hiển thị và chỉnh sửa:
+  // - Nếu chọn tuần cụ thể: MẶC ĐỊNH 100% THEO THỜI KHÓA BIỂU CỦA TUẦN ĐÓ.
+  //   Tuyệt đối KHÔNG tự ý lấy lịch mặc định để chèn thêm các ca "Bổ sung".
+  //   Chỉ ca nào trong TKB có tiết thì mới là Học, các ca còn lại là Nghỉ.
   const activeSchedule: Record<string, string[]> = useMemo(() => {
     if (selectedWeek === 'default') {
       return form.schedule || settings?.schedule || DEFAULT_SCHEDULE;
     }
-    return form.weeklySchedules?.[selectedWeek] || form.schedule || settings?.schedule || DEFAULT_SCHEDULE;
+    // 1. Ưu tiên: Lịch riêng tuần này nếu Admin đã chỉnh sửa
+    if (form.weeklySchedules?.[selectedWeek]) {
+      return form.weeklySchedules[selectedWeek];
+    }
+    // 2. Mặc định tự động: Lấy đúng 100% Thời khóa biểu CQP22 của tuần
+    const timetable = getTimetableScheduleForWeek(selectedWeek);
+    if (timetable) {
+      return timetable;
+    }
+    // 3. Nếu tuần ngoài danh mục TKB: Mặc định là nghỉ tất cả
+    return { '0': [], '1': [], '2': [], '3': [], '4': [], '5': [], '6': [] };
   }, [selectedWeek, form.weeklySchedules, form.schedule, settings?.schedule]);
 
   const isCustomizedWeek = selectedWeek !== 'default' && !!form.weeklySchedules?.[selectedWeek];
@@ -236,6 +249,20 @@ export default function SettingsPage() {
         weeklySchedules: nextWeekly,
       };
     });
+    setMessage({ text: 'Đã đặt lại tuần này về chuẩn Thời khóa biểu gốc!', type: 'success' });
+    setTimeout(() => setMessage(null), 3000);
+  };
+
+  const resetAllWeeksToTimetable = () => {
+    if (!window.confirm('Bạn có chắc muốn xóa mọi tùy chỉnh và đưa TOÀN BỘ các tuần về chuẩn 100% Thời khóa biểu gốc không?')) {
+      return;
+    }
+    setForm((prev) => ({
+      ...prev,
+      weeklySchedules: {},
+    }));
+    setMessage({ text: 'Đã khôi phục toàn bộ các tuần về chuẩn Thời khóa biểu gốc!', type: 'success' });
+    setTimeout(() => setMessage(null), 3000);
   };
 
   const copyCredentials = () => {
@@ -620,7 +647,7 @@ export default function SettingsPage() {
             )}
           </div>
 
-          <div className={styles.weekActionsRight}>
+          <div className={styles.weekActionsRight} style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {selectedWeek !== 'default' && isCustomizedWeek && (
               <button
                 type="button"
@@ -628,7 +655,18 @@ export default function SettingsPage() {
                 onClick={resetCurrentWeekSchedule}
                 title="Xóa lịch riêng của tuần này và quay lại dùng Thời khóa biểu gốc"
               >
-                ✕ Đặt lại theo TKB gốc
+                ✕ Đặt lại tuần này về TKB
+              </button>
+            )}
+            {Object.keys(form.weeklySchedules || {}).length > 0 && (
+              <button
+                type="button"
+                className={styles.weekResetBtn}
+                onClick={resetAllWeeksToTimetable}
+                style={{ background: 'rgba(239, 68, 68, 0.1)', borderColor: 'rgba(239, 68, 68, 0.3)', color: '#f87171' }}
+                title="Xóa mọi tùy chỉnh để toàn bộ các tuần chạy theo chuẩn Thời khóa biểu gốc"
+              >
+                🔄 Khôi phục TẤT CẢ các tuần về TKB
               </button>
             )}
           </div>
