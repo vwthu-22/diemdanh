@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import api from '@/lib/api';
 import { DailyAttendanceRow, AttendanceStatus, AttendanceSession, Settings, AttendanceRecord } from '@/types';
+import { getTimetableScheduleForWeek } from '@/data/schedule';
 import styles from './dashboard.module.css';
 
 const STATUS_LABELS: Record<string, string> = {
@@ -234,10 +235,12 @@ export default function DashboardPage() {
 
   const isSessionScheduled = useCallback((session: 'morning' | 'afternoon' | 'evening') => {
     const dow = getDayOfWeekKey(date);
-    // Ưu tiên lịch riêng theo tuần nếu có (giống backend getScheduleForDate)
+    // 1. Ưu tiên: Lịch riêng tuần này nếu Admin tùy chỉnh
     const weekStart = getWeekStart(date);
     const weekOverride = settings?.weeklySchedules?.[weekStart];
-    const schedule = weekOverride ?? settings?.schedule;
+    // 2. Mặc định tự động: Theo Thời khóa biểu CQP22 của tuần
+    const timetableSched = getTimetableScheduleForWeek(weekStart);
+    const schedule = weekOverride ?? timetableSched ?? settings?.schedule;
     if (!schedule) return session !== 'evening'; // mặc định không có tối
     return schedule[dow]?.includes(session) ?? false;
   }, [date, getDayOfWeekKey, getWeekStart, settings]);

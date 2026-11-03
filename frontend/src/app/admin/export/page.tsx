@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import api from '@/lib/api';
+import { getTimetableScheduleForWeek, getMondayOfWeek } from '@/data/schedule';
 import styles from './export.module.css';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -32,6 +33,7 @@ interface WeeklyData {
     morningLateEnd?: string;
     afternoonLateEnd?: string;
     startDate?: string;
+    weeklySchedules?: Record<string, Record<string, string[]>>;
   };
 }
 
@@ -106,7 +108,8 @@ function DailyPreview({ date }: { date: string }) {
   const now = new Date();
   const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   const dow = String(new Date(date).getDay());
-  const schedule = settings?.schedule || DEFAULT_SCHEDULE;
+  const monday = getMondayOfWeek(date);
+  const schedule = settings?.weeklySchedules?.[monday] ?? getTimetableScheduleForWeek(monday) ?? settings?.schedule ?? DEFAULT_SCHEDULE;
 
   const morningScheduled = schedule[dow]?.includes('morning') ?? true;
   const afternoonScheduled = schedule[dow]?.includes('afternoon') ?? true;
@@ -271,7 +274,8 @@ function WeeklyPreview({ from, to }: { from: string; to: string }) {
     }
 
     const dow = String(new Date(date).getDay());
-    const schedule = data?.schedule;
+    const monday = getMondayOfWeek(date);
+    const schedule = data?.settings?.weeklySchedules?.[monday] ?? getTimetableScheduleForWeek(monday) ?? data?.schedule;
     const isScheduled = schedule ? (schedule[dow]?.includes(session) ?? true) : true;
 
     const today = data?.today || new Date().toLocaleDateString('en-CA');
@@ -449,7 +453,8 @@ function MonthlyPreview({ month }: { month: string }) {
     }
 
     const dow = String(new Date(date).getDay());
-    const schedule = data?.schedule;
+    const monday = getMondayOfWeek(date);
+    const schedule = data?.settings?.weeklySchedules?.[monday] ?? getTimetableScheduleForWeek(monday) ?? data?.schedule;
     const isScheduled = schedule ? (schedule[dow]?.includes(session) ?? true) : true;
 
     const today = data?.today || new Date().toLocaleDateString('en-CA');
@@ -487,7 +492,8 @@ function MonthlyPreview({ month }: { month: string }) {
     const startDate = data?.settings?.startDate || today;
     dates.forEach((d) => {
       const dow = String(new Date(d).getDay());
-      const schedule = data?.schedule;
+      const monday = getMondayOfWeek(d);
+      const schedule = data?.settings?.weeklySchedules?.[monday] ?? getTimetableScheduleForWeek(monday) ?? data?.schedule;
       const isPastStart = d >= startDate;
       (['morning', 'afternoon'] as const).forEach((sess) => {
         const isSched = schedule ? (schedule[dow]?.includes(sess) ?? true) : true;

@@ -69,6 +69,47 @@ export const DEFAULT_SCHEDULE: Record<string, string[]> = {
 };
 
 /**
+ * Thời khóa biểu gốc của lớp CQP22 từ Tuần 5 đến Tuần 20
+ * Được trích xuất trực tiếp từ dữ liệu bài học thực tế (SCHEDULE_DATA).
+ * Hệ thống sẽ tự động dùng lịch này làm mặc định cho từng tuần,
+ * chỉ dùng tùy chỉnh riêng khi Quản trị viên sửa đổi (weeklySchedules).
+ */
+export const TIMETABLE_WEEKLY_SCHEDULES: Record<string, Record<string, string[]>> = {
+  // Tuần 5 (14/09 – 20/09/2026)
+  '2026-09-14': { '0': [], '1': ['morning'], '2': ['morning', 'afternoon'], '3': ['morning', 'afternoon'], '4': ['morning'], '5': ['morning', 'afternoon'], '6': [] },
+  // Tuần 6 (21/09 – 27/09/2026)
+  '2026-09-21': { '0': [], '1': ['morning'], '2': ['morning', 'afternoon'], '3': ['morning', 'afternoon'], '4': ['morning'], '5': ['morning', 'afternoon'], '6': [] },
+  // Tuần 7 (28/09 – 04/10/2026)
+  '2026-09-28': { '0': [], '1': ['morning'], '2': ['morning', 'afternoon'], '3': ['afternoon'], '4': ['morning'], '5': ['morning', 'afternoon'], '6': [] },
+  // Tuần 8 (05/10 – 11/10/2026)
+  '2026-10-05': { '0': [], '1': ['morning'], '2': ['morning', 'afternoon'], '3': ['morning', 'afternoon'], '4': ['morning'], '5': ['morning', 'afternoon'], '6': [] },
+  // Tuần 9 (12/10 – 18/10/2026)
+  '2026-10-12': { '0': [], '1': ['morning'], '2': ['morning', 'afternoon'], '3': ['morning', 'afternoon'], '4': ['morning'], '5': ['morning', 'afternoon'], '6': [] },
+  // Tuần 10 (19/10 – 25/10/2026)
+  '2026-10-19': { '0': [], '1': [], '2': ['morning', 'afternoon'], '3': ['afternoon'], '4': ['morning'], '5': ['afternoon'], '6': [] },
+  // Tuần 11 (26/10 – 01/11/2026)
+  '2026-10-26': { '0': [], '1': ['morning'], '2': ['afternoon'], '3': [], '4': [], '5': ['morning'], '6': [] },
+  // Tuần 12 (02/11 – 08/11/2026)
+  '2026-11-02': { '0': [], '1': [], '2': ['afternoon'], '3': ['morning'], '4': [], '5': ['morning'], '6': [] },
+  // Tuần 13 (09/11 – 15/11/2026)
+  '2026-11-09': { '0': [], '1': [], '2': ['afternoon'], '3': ['morning'], '4': [], '5': ['morning'], '6': [] },
+  // Tuần 14 (16/11 – 22/11/2026)
+  '2026-11-16': { '0': [], '1': ['morning'], '2': ['afternoon'], '3': ['morning'], '4': [], '5': ['morning', 'afternoon'], '6': [] },
+  // Tuần 15 (23/11 – 29/11/2026)
+  '2026-11-23': { '0': [], '1': ['morning'], '2': [], '3': [], '4': ['morning'], '5': ['morning', 'afternoon'], '6': ['afternoon'] },
+  // Tuần 16 (30/11 – 06/12/2026)
+  '2026-11-30': { '0': [], '1': [], '2': ['morning', 'afternoon'], '3': [], '4': ['morning'], '5': ['morning', 'afternoon'], '6': [] },
+  // Tuần 17 (07/12 – 13/12/2026)
+  '2026-12-07': { '0': [], '1': [], '2': ['morning', 'afternoon'], '3': [], '4': ['morning'], '5': ['morning'], '6': [] },
+  // Tuần 18 (14/12 – 20/12/2026)
+  '2026-12-14': { '0': [], '1': [], '2': ['morning', 'afternoon'], '3': [], '4': ['morning'], '5': [], '6': [] },
+  // Tuần 19 (21/12 – 27/12/2026)
+  '2026-12-21': { '0': [], '1': [], '2': ['morning', 'afternoon'], '3': [], '4': ['morning'], '5': [], '6': [] },
+  // Tuần 20 (28/12 – 03/01/2027)
+  '2026-12-28': { '0': [], '1': [], '2': ['morning'], '3': [], '4': ['morning'], '5': [], '6': [] },
+};
+
+/**
  * Lấy ngày Thứ 2 đầu tuần (YYYY-MM-DD) của bất kỳ ngày nào
  */
 export function getMondayOfWeek(dateStr: string): string {
@@ -84,7 +125,10 @@ export function getMondayOfWeek(dateStr: string): string {
 }
 
 /**
- * Lấy thời khóa biểu cho một ngày cụ thể (ưu tiên lịch riêng của tuần, nếu không có dùng lịch mặc định)
+ * Lấy thời khóa biểu cho một ngày cụ thể:
+ * 1. Ưu tiên cao nhất: Lịch riêng tuần này do Admin cấu hình (weeklySchedules[monday])
+ * 2. Mặc định tự động: Lịch theo đúng Thời khóa biểu CQP22 (TIMETABLE_WEEKLY_SCHEDULES[monday])
+ * 3. Fallback: Lịch chung cài đặt trong hệ thống (settings.schedule hoặc DEFAULT_SCHEDULE)
  */
 export function getScheduleForDate(
   settings: Settings,
@@ -92,12 +136,15 @@ export function getScheduleForDate(
 ): Record<string, string[]> {
   const monday = getMondayOfWeek(dateStr);
   if (
-    settings.weeklySchedules &&
+    settings?.weeklySchedules &&
     settings.weeklySchedules[monday] &&
     typeof settings.weeklySchedules[monday] === 'object'
   ) {
     return settings.weeklySchedules[monday];
   }
-  return settings.schedule || DEFAULT_SCHEDULE;
+  if (TIMETABLE_WEEKLY_SCHEDULES[monday]) {
+    return TIMETABLE_WEEKLY_SCHEDULES[monday];
+  }
+  return settings?.schedule || DEFAULT_SCHEDULE;
 }
 

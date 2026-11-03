@@ -3,18 +3,24 @@ import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import api from '@/lib/api';
 import { Settings } from '@/types';
-import { WEEKS_LIST } from '@/data/schedule';
+import { WEEKS_LIST, getTimetableScheduleForWeek, getLessonsForDateAndSession } from '@/data/schedule';
 import styles from './settings.module.css';
 
 const DAYS = [
-  { key: '1', label: 'Thứ 2' },
-  { key: '2', label: 'Thứ 3' },
-  { key: '3', label: 'Thứ 4' },
-  { key: '4', label: 'Thứ 5' },
-  { key: '5', label: 'Thứ 6' },
-  { key: '6', label: 'Thứ 7' },
-  { key: '0', label: 'Chủ Nhật' },
+  { key: '1', label: 'Thứ 2', offset: 0 },
+  { key: '2', label: 'Thứ 3', offset: 1 },
+  { key: '3', label: 'Thứ 4', offset: 2 },
+  { key: '4', label: 'Thứ 5', offset: 3 },
+  { key: '5', label: 'Thứ 6', offset: 4 },
+  { key: '6', label: 'Thứ 7', offset: 5 },
+  { key: '0', label: 'Chủ Nhật', offset: 6 },
 ];
+
+function addDaysToDate(dateStr: string, days: number): string {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d + days));
+  return dt.toISOString().slice(0, 10);
+}
 
 const DEFAULT_SCHEDULE: Record<string, string[]> = {
   '1': ['morning'],

@@ -1876,3 +1876,64 @@ export function getTodayLessons(): ScheduleLesson[] {
   const today = new Date().toLocaleDateString('en-CA');
   return getLessonsByDate(today);
 }
+
+/**
+ * Lấy ngày Thứ 2 đầu tuần (YYYY-MM-DD) của bất kỳ ngày nào
+ */
+export function getMondayOfWeek(dateStr: string): string {
+  const parts = dateStr.split('-');
+  const y = parseInt(parts[0], 10);
+  const m = parseInt(parts[1], 10);
+  const d = parseInt(parts[2], 10);
+  const date = new Date(Date.UTC(y, m - 1, d));
+  const day = date.getUTCDay(); // 0 = Chủ Nhật, 1 = Thứ 2, ...
+  const diff = (day === 0 ? -6 : 1) - day;
+  date.setUTCDate(date.getUTCDate() + diff);
+  return date.toISOString().slice(0, 10);
+}
+
+/**
+ * Bản đồ các ca học theo Thời khóa biểu chuẩn của CQP22 từ Tuần 5 đến Tuần 20
+ * Tự động tạo từ SCHEDULE_DATA
+ */
+export const TIMETABLE_WEEKLY_SCHEDULES: Record<string, Record<string, string[]>> = (() => {
+  const map: Record<string, Record<string, string[]>> = {};
+  for (const w of WEEKS_LIST) {
+    map[w.from] = {
+      '0': [],
+      '1': [],
+      '2': [],
+      '3': [],
+      '4': [],
+      '5': [],
+      '6': [],
+    };
+  }
+  for (const lesson of SCHEDULE_DATA) {
+    const monday = getMondayOfWeek(lesson.date);
+    if (!map[monday]) {
+      map[monday] = { '0': [], '1': [], '2': [], '3': [], '4': [], '5': [], '6': [] };
+    }
+    const [y, m, d] = lesson.date.split('-').map(Number);
+    const day = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+    const dayKey = String(day);
+    if (!map[monday][dayKey].includes(lesson.session)) {
+      map[monday][dayKey].push(lesson.session);
+    }
+  }
+  return map;
+})();
+
+/**
+ * Lấy lịch học theo Thời khóa biểu của một tuần bất kỳ (theo ngày Thứ 2 của tuần)
+ */
+export function getTimetableScheduleForWeek(mondayStr: string): Record<string, string[]> | null {
+  return TIMETABLE_WEEKLY_SCHEDULES[mondayStr] || null;
+}
+
+/**
+ * Lấy các bài học của một ngày và ca học cụ thể (morning / afternoon / evening)
+ */
+export function getLessonsForDateAndSession(dateStr: string, session: string): ScheduleLesson[] {
+  return SCHEDULE_DATA.filter((l) => l.date === dateStr && l.session === session);
+}
