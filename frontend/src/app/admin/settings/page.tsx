@@ -32,10 +32,18 @@ const DEFAULT_SCHEDULE: Record<string, string[]> = {
   '0': [],
 };
 
+function getCurrentOrUpcomingWeek(): string {
+  const today = new Date().toLocaleDateString('en-CA');
+  const found = WEEKS_LIST.find((w) => today >= w.from && today <= w.to);
+  if (found) return found.from;
+  if (today < WEEKS_LIST[0].from) return WEEKS_LIST[0].from;
+  return WEEKS_LIST[WEEKS_LIST.length - 1].from;
+}
+
 export default function SettingsPage() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [form, setForm] = useState<Partial<Settings>>({});
-  const [selectedWeek, setSelectedWeek] = useState<string>('default');
+  const [selectedWeek, setSelectedWeek] = useState<string>(getCurrentOrUpcomingWeek);
   const [loading, setLoading] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [gpsLoading, setGpsLoading] = useState(false);
@@ -168,7 +176,18 @@ export default function SettingsPage() {
     }
   };
 
-  const setPresetSchedule = (type: 'cqp22' | 'all' | 'none') => {
+  const setPresetSchedule = (type: 'timetable' | 'cqp22' | 'all' | 'none') => {
+    if (type === 'timetable') {
+      if (selectedWeek !== 'default') {
+        resetCurrentWeekSchedule();
+      } else {
+        setForm((prev) => ({ ...prev, schedule: DEFAULT_SCHEDULE }));
+        setMessage({ text: 'Đã đặt lại lịch mặc định theo khung chuẩn!', type: 'success' });
+        setTimeout(() => setMessage(null), 3000);
+      }
+      return;
+    }
+
     let newSched: Record<string, string[]> = {};
     if (type === 'cqp22') {
       newSched = {
@@ -529,8 +548,10 @@ export default function SettingsPage() {
             </h2>
             <p className={styles.sectionDesc} style={{ marginBottom: 0 }}>
               {selectedWeek === 'default'
-                ? 'Đang xem: Lịch mặc định (áp dụng cho tất cả các tuần chưa cài đặt riêng)'
-                : `Đang tùy chỉnh riêng cho tuần cụ thể. Lịch này sẽ ghi đè lên lịch mặc định của tuần đó.`}
+                ? 'Đang xem: Lịch mặc định dự phòng (chỉ áp dụng nếu ngày ngoài các tuần TKB).'
+                : isCustomizedWeek
+                ? '★ Đang tùy chỉnh riêng cho tuần này (ghi đè Thời khóa biểu gốc). Nhấn "Đặt lại theo TKB gốc" để khôi phục.'
+                : '✓ Đang áp dụng chuẩn tự động theo Thời khóa biểu lớp CQP22. Chỉ bấm vào ca học nếu cần điều chỉnh phát sinh (nghỉ học / học bù).'}
             </p>
           </div>
 
@@ -538,10 +559,10 @@ export default function SettingsPage() {
             <button
               type="button"
               className={styles.presetBtn}
-              onClick={() => setPresetSchedule('cqp22')}
-              title="Đặt theo lịch học chuẩn CQP22 (Sáng T2-T6, Chiều T3, T4, T5, T6)"
+              onClick={() => setPresetSchedule('timetable')}
+              title={selectedWeek !== 'default' ? 'Khôi phục tuần này về đúng Thời khóa biểu chuẩn' : 'Đặt lại lịch mặc định theo khung chuẩn'}
             >
-              Lịch chuẩn CQP22
+              ✓ {selectedWeek !== 'default' ? 'Đặt lại theo TKB gốc' : 'Khung chuẩn CQP22'}
             </button>
             <button
               type="button"
@@ -574,26 +595,28 @@ export default function SettingsPage() {
               onChange={(e) => setSelectedWeek(e.target.value)}
               id="settings-week-select"
             >
-              <option value="default"> Lịch mặc định (áp dụng các tuần chưa cài riêng)</option>
-              <optgroup label="Tùy chỉnh riêng từng tuần">
+              <optgroup label="Thời khóa biểu từng tuần (Lớp CQP22)">
                 {WEEKS_LIST.map((w) => {
                   const hasCustom = !!form.weeklySchedules?.[w.from];
                   return (
                     <option key={w.week} value={w.from}>
                       Tuần {w.week} ({w.from.split('-').reverse().slice(0, 2).join('/')} – {w.to.split('-').reverse().slice(0, 2).join('/')})
-                      {hasCustom ? ' ★ [Có lịch riêng]' : ''}
+                      {hasCustom ? ' ★ [Đã chỉnh sửa riêng]' : ' ✓ [Theo TKB chuẩn]'}
                     </option>
                   );
                 })}
               </optgroup>
+              <option value="default">🌐 Lịch mặc định chung (dự phòng ngoài TKB)</option>
             </select>
 
             {selectedWeek === 'default' ? (
-              <span className={styles.weekBadgeDefault}>Áp dụng chung</span>
+              <span className={styles.weekBadgeDefault}>Áp dụng ngoài TKB</span>
             ) : isCustomizedWeek ? (
-              <span className={styles.weekBadgeCustom}>Đang dùng lịch riêng của tuần</span>
+              <span className={styles.weekBadgeCustom}>★ Đã chỉnh sửa riêng (Ghi đè TKB)</span>
             ) : (
-              <span className={styles.weekBadgeDefault}>Đang kế thừa từ lịch mặc định</span>
+              <span className={styles.weekBadgeDefault} style={{ background: 'rgba(34, 197, 94, 0.15)', color: '#22c55e', borderColor: 'rgba(34, 197, 94, 0.3)' }}>
+                ✓ Đang theo Thời khóa biểu chuẩn
+              </span>
             )}
           </div>
 
@@ -603,9 +626,9 @@ export default function SettingsPage() {
                 type="button"
                 className={styles.weekResetBtn}
                 onClick={resetCurrentWeekSchedule}
-                title="Xóa lịch riêng của tuần này và quay lại dùng lịch mặc định"
+                title="Xóa lịch riêng của tuần này và quay lại dùng Thời khóa biểu gốc"
               >
-                ✕ Xóa tùy chỉnh (Về mặc định)
+                ✕ Đặt lại theo TKB gốc
               </button>
             )}
           </div>
@@ -616,9 +639,16 @@ export default function SettingsPage() {
             <thead>
               <tr>
                 <th style={{ width: 130, textAlign: 'left' }}>Ca học</th>
-                {DAYS.map((d) => (
-                  <th key={d.key}>{d.label}</th>
-                ))}
+                {DAYS.map((d) => {
+                  const dayDate = selectedWeek !== 'default' ? addDaysToDate(selectedWeek, d.offset) : null;
+                  const dateShort = dayDate ? dayDate.split('-').reverse().slice(0, 2).join('/') : '';
+                  return (
+                    <th key={d.key}>
+                      <div>{d.label}</div>
+                      {dateShort && <div style={{ fontSize: '0.72rem', fontWeight: 500, opacity: 0.7, textTransform: 'none' }}>{dateShort}</div>}
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>
@@ -629,6 +659,11 @@ export default function SettingsPage() {
                 </td>
                 {DAYS.map((d) => {
                   const active = activeSchedule[d.key]?.includes('morning') ?? false;
+                  const dayDate = selectedWeek !== 'default' ? addDaysToDate(selectedWeek, d.offset) : null;
+                  const lessons = dayDate ? getLessonsForDateAndSession(dayDate, 'morning') : [];
+                  const subjectName = lessons[0]?.subject;
+                  const room = lessons[0]?.room;
+
                   return (
                     <td
                       key={`morning-${d.key}`}
@@ -637,7 +672,33 @@ export default function SettingsPage() {
                     >
                       <div className={`${styles.scheduleToggleCard} ${active ? styles.toggleActive : styles.toggleInactive}`}>
                         <div className={styles.toggleTitle}>{active ? 'Học' : 'Nghỉ'}</div>
-                        <div className={styles.toggleSub}>{active ? 'Có điểm danh' : 'Bỏ qua (không vắng)'}</div>
+                        {subjectName && (
+                          <div
+                            style={{
+                              fontSize: '0.72rem',
+                              fontWeight: 600,
+                              color: active ? 'inherit' : 'var(--color-text-muted)',
+                              textAlign: 'center',
+                              maxWidth: 105,
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              marginTop: 2,
+                            }}
+                            title={`${subjectName} ${room ? `(P.${room})` : ''}`}
+                          >
+                            📖 {subjectName}
+                          </div>
+                        )}
+                        <div className={styles.toggleSub}>
+                          {active
+                            ? lessons.length > 0
+                              ? 'Điểm danh (TKB)'
+                              : 'Điểm danh (Bổ sung)'
+                            : lessons.length > 0
+                            ? 'Bỏ qua (Tắt điểm danh)'
+                            : 'Bỏ qua (không vắng)'}
+                        </div>
                       </div>
                     </td>
                   );
@@ -651,6 +712,11 @@ export default function SettingsPage() {
                 </td>
                 {DAYS.map((d) => {
                   const active = activeSchedule[d.key]?.includes('afternoon') ?? false;
+                  const dayDate = selectedWeek !== 'default' ? addDaysToDate(selectedWeek, d.offset) : null;
+                  const lessons = dayDate ? getLessonsForDateAndSession(dayDate, 'afternoon') : [];
+                  const subjectName = lessons[0]?.subject;
+                  const room = lessons[0]?.room;
+
                   return (
                     <td
                       key={`afternoon-${d.key}`}
@@ -659,7 +725,33 @@ export default function SettingsPage() {
                     >
                       <div className={`${styles.scheduleToggleCard} ${active ? styles.toggleActive : styles.toggleInactive}`}>
                         <div className={styles.toggleTitle}>{active ? 'Học' : 'Nghỉ'}</div>
-                        <div className={styles.toggleSub}>{active ? 'Có điểm danh' : 'Bỏ qua (không vắng)'}</div>
+                        {subjectName && (
+                          <div
+                            style={{
+                              fontSize: '0.72rem',
+                              fontWeight: 600,
+                              color: active ? 'inherit' : 'var(--color-text-muted)',
+                              textAlign: 'center',
+                              maxWidth: 105,
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              marginTop: 2,
+                            }}
+                            title={`${subjectName} ${room ? `(P.${room})` : ''}`}
+                          >
+                            📖 {subjectName}
+                          </div>
+                        )}
+                        <div className={styles.toggleSub}>
+                          {active
+                            ? lessons.length > 0
+                              ? 'Điểm danh (TKB)'
+                              : 'Điểm danh (Bổ sung)'
+                            : lessons.length > 0
+                            ? 'Bỏ qua (Tắt điểm danh)'
+                            : 'Bỏ qua (không vắng)'}
+                        </div>
                       </div>
                     </td>
                   );
@@ -673,6 +765,10 @@ export default function SettingsPage() {
                 </td>
                 {DAYS.map((d) => {
                   const active = activeSchedule[d.key]?.includes('evening') ?? false;
+                  const dayDate = selectedWeek !== 'default' ? addDaysToDate(selectedWeek, d.offset) : null;
+                  const lessons = dayDate ? getLessonsForDateAndSession(dayDate, 'evening') : [];
+                  const subjectName = lessons[0]?.subject;
+
                   return (
                     <td
                       key={`evening-${d.key}`}
@@ -681,7 +777,27 @@ export default function SettingsPage() {
                     >
                       <div className={`${styles.scheduleToggleCard} ${active ? styles.toggleActive : styles.toggleInactive}`}>
                         <div className={styles.toggleTitle}>{active ? 'Học / Sự kiện' : 'Nghỉ'}</div>
-                        <div className={styles.toggleSub}>{active ? 'Có điểm danh' : 'Bỏ qua (không vắng)'}</div>
+                        {subjectName && (
+                          <div
+                            style={{
+                              fontSize: '0.72rem',
+                              fontWeight: 600,
+                              color: active ? 'inherit' : 'var(--color-text-muted)',
+                              textAlign: 'center',
+                              maxWidth: 105,
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              marginTop: 2,
+                            }}
+                            title={subjectName}
+                          >
+                            📖 {subjectName}
+                          </div>
+                        )}
+                        <div className={styles.toggleSub}>
+                          {active ? 'Có điểm danh' : 'Bỏ qua (không vắng)'}
+                        </div>
                       </div>
                     </td>
                   );

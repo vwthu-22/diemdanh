@@ -450,68 +450,248 @@ export default function StudentPage() {
           </div>
         )}
 
-        {/* Check-in Buttons */}
+        {/* Check-in Section: Trực tiếp theo Thời khóa biểu */}
         {sessionStatus && (
           <div className={`${styles.sessionsGrid} fade-in`}>
-            {sessionStatus.sessions.map((session) => {
-              const record = getRecordForSession(session.session);
-              const statusInfo = record ? STATUS_MAP[record.status] : null;
-
-              return (
-                <div key={session.session} className={`card ${styles.sessionCard}`}>
-                  <div className={styles.sessionHeader}>
-                    <div className={styles.sessionLabel}>
-                      {session.label}
-                    </div>
-                    <div className={`${styles.sessionTimeBadge} ${
-                      session.isScheduled === false
-                        ? styles.sessionClosed
-                        : session.isOpen
-                        ? (session.isOnTime ? styles.sessionOpen : styles.sessionLate)
-                        : styles.sessionClosed
-                    }`}>
-                      {session.isScheduled === false
-                        ? 'Không có tiết'
-                        : session.isOpen
-                        ? (session.isOnTime ? 'Đang mở' : 'Muộn')
-                        : 'Đã đóng'}
-                    </div>
-                  </div>
-
-                  <div className={styles.sessionTime}>
-                    Thời gian: {session.start} – {session.lateEnd}
-                    <span className={styles.onTimeHint}>(Đúng giờ trước {session.onTimeEnd})</span>
-                  </div>
-
-                  {record ? (
-                    <div className={styles.checkedInState}>
-                      <div className={`${styles.statusBig} ${statusInfo?.className}`}>
-                        {statusInfo?.label}
-                      </div>
-                      <div className={styles.checkInTime}>
-                        Điểm danh lúc {record.checkInTime?.substring(0, 5)}
-                      </div>
-                    </div>
-                  ) : session.isScheduled === false ? (
-                    <div className={styles.closedState}>
-                      Buổi này lớp không có lịch học
-                    </div>
-                  ) : session.isOpen ? (
-                    <button
-                      className={`btn btn-primary btn-lg w-full ${styles.checkinBtn}`}
-                      onClick={() => checkIn(session.session)}
-                      disabled={loading || !selectedStudent}
-                    >
-                      {loading ? <><div className="spinner" /> Đang xử lý...</> : 'Điểm danh ngay'}
-                    </button>
-                  ) : (
-                    <div className={styles.closedState}>
-                      Cổng điểm danh đã đóng
-                    </div>
-                  )}
+            {todayLessons.length === 0 && !sessionStatus.sessions.some((s) => s.isScheduled) ? (
+              <div
+                className="card fade-in"
+                style={{
+                  gridColumn: '1 / -1',
+                  padding: '24px 20px',
+                  textAlign: 'center',
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: 14,
+                }}
+              >
+                <div style={{ fontSize: '2.4rem', marginBottom: 8 }}>🏖️</div>
+                <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#f8fafc' }}>
+                  Hôm nay lớp CQP 22 không có lịch học
                 </div>
-              );
-            })}
+                <p style={{ color: '#94a3b8', fontSize: '0.84rem', marginTop: 6, marginBottom: 14 }}>
+                  Theo Thời khóa biểu, hôm nay cả lớp được nghỉ. Không có ca điểm danh nào cần thực hiện.
+                </p>
+                <Link
+                  href="/schedule"
+                  className="btn btn-secondary btn-sm"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                >
+                  📅 Xem Thời khóa biểu tuần này →
+                </Link>
+              </div>
+            ) : todayLessons.length > 0 ? (
+              todayLessons.map((lesson) => {
+                const session = sessionStatus.sessions.find((s) => s.session === lesson.session);
+                const record = getRecordForSession(lesson.session as AttendanceSession);
+                const statusInfo = record ? STATUS_MAP[record.status] : null;
+
+                return (
+                  <div
+                    key={lesson.id}
+                    className={`card ${styles.sessionCard}`}
+                    style={{ borderLeft: `4px solid ${lesson.accentColor || 'var(--color-primary)'}` }}
+                  >
+                    <div className={styles.sessionHeader}>
+                      <div>
+                        <div
+                          style={{
+                            fontSize: '0.74rem',
+                            fontWeight: 700,
+                            color: lesson.session === 'morning' ? '#fbbf24' : '#60a5fa',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.04em',
+                          }}
+                        >
+                          Ca {lesson.sessionLabel} • Tiết {lesson.periods} • P.{lesson.room}
+                        </div>
+                        <div className={styles.sessionLabel} style={{ fontSize: '1.1rem', marginTop: 2 }}>
+                          {lesson.subject}
+                        </div>
+                        <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: 2 }}>
+                          Giảng viên: {lesson.teacher}
+                        </div>
+                      </div>
+                      <div
+                        className={`${styles.sessionTimeBadge} ${
+                          session?.isScheduled === false
+                            ? styles.sessionClosed
+                            : session?.isOpen
+                            ? session.isOnTime
+                              ? styles.sessionOpen
+                              : styles.sessionLate
+                            : styles.sessionClosed
+                        }`}
+                      >
+                        {session?.isScheduled === false
+                          ? 'Báo nghỉ'
+                          : session?.isOpen
+                          ? session.isOnTime
+                            ? 'Đang mở'
+                            : 'Muộn'
+                          : 'Đã đóng'}
+                      </div>
+                    </div>
+
+                    <div className={styles.sessionTime}>
+                      Thời gian: {session?.start} – {session?.lateEnd}
+                      <span className={styles.onTimeHint}>(Đúng giờ trước {session?.onTimeEnd})</span>
+                    </div>
+
+                    {record ? (
+                      <div className={styles.checkedInState}>
+                        <div className={`${styles.statusBig} ${statusInfo?.className}`}>
+                          {statusInfo?.label}
+                        </div>
+                        <div className={styles.checkInTime}>
+                          Đã điểm danh môn {lesson.subject} lúc {record.checkInTime?.substring(0, 5)}
+                        </div>
+                      </div>
+                    ) : session?.isScheduled === false ? (
+                      <div className={styles.closedState}>
+                        Ca này được báo nghỉ theo Thời khóa biểu
+                      </div>
+                    ) : session?.isOpen ? (
+                      <button
+                        className={`btn btn-primary btn-lg w-full ${styles.checkinBtn}`}
+                        onClick={() => checkIn(lesson.session as AttendanceSession)}
+                        disabled={loading || !selectedStudent}
+                      >
+                        {loading ? (
+                          <>
+                            <div className="spinner" /> Đang xử lý...
+                          </>
+                        ) : (
+                          `Điểm danh: ${lesson.subject}`
+                        )}
+                      </button>
+                    ) : (
+                      <div className={styles.closedState}>
+                        Cổng điểm danh đã đóng
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            ) : (
+              // Fallback khi không có bài học trong TKB nhưng có ca được mở
+              sessionStatus.sessions
+                .filter((s) => s.isScheduled)
+                .map((session) => {
+                  const record = getRecordForSession(session.session);
+                  const statusInfo = record ? STATUS_MAP[record.status] : null;
+
+                  return (
+                    <div key={session.session} className={`card ${styles.sessionCard}`}>
+                      <div className={styles.sessionHeader}>
+                        <div className={styles.sessionLabel}>{session.label}</div>
+                        <div
+                          className={`${styles.sessionTimeBadge} ${
+                            session.isOpen
+                              ? session.isOnTime
+                                ? styles.sessionOpen
+                                : styles.sessionLate
+                              : styles.sessionClosed
+                          }`}
+                        >
+                          {session.isOpen ? (session.isOnTime ? 'Đang mở' : 'Muộn') : 'Đã đóng'}
+                        </div>
+                      </div>
+
+                      <div className={styles.sessionTime}>
+                        Thời gian: {session.start} – {session.lateEnd}
+                        <span className={styles.onTimeHint}>(Đúng giờ trước {session.onTimeEnd})</span>
+                      </div>
+
+                      {record ? (
+                        <div className={styles.checkedInState}>
+                          <div className={`${styles.statusBig} ${statusInfo?.className}`}>
+                            {statusInfo?.label}
+                          </div>
+                          <div className={styles.checkInTime}>
+                            Điểm danh lúc {record.checkInTime?.substring(0, 5)}
+                          </div>
+                        </div>
+                      ) : session.isOpen ? (
+                        <button
+                          className={`btn btn-primary btn-lg w-full ${styles.checkinBtn}`}
+                          onClick={() => checkIn(session.session)}
+                          disabled={loading || !selectedStudent}
+                        >
+                          {loading ? (
+                            <>
+                              <div className="spinner" /> Đang xử lý...
+                            </>
+                          ) : (
+                            'Điểm danh ngay'
+                          )}
+                        </button>
+                      ) : (
+                        <div className={styles.closedState}>Cổng điểm danh đã đóng</div>
+                      )}
+                    </div>
+                  );
+                })
+            )}
+
+            {/* Extra: Ca Tối nếu được xếp lịch sự kiện riêng */}
+            {todayLessons.length > 0 &&
+              sessionStatus.sessions
+                .filter((s) => s.session === 'evening' && s.isScheduled)
+                .map((session) => {
+                  const record = getRecordForSession(session.session);
+                  const statusInfo = record ? STATUS_MAP[record.status] : null;
+
+                  return (
+                    <div key="evening-extra" className={`card ${styles.sessionCard}`}>
+                      <div className={styles.sessionHeader}>
+                        <div className={styles.sessionLabel}>{session.label} (Sự kiện)</div>
+                        <div
+                          className={`${styles.sessionTimeBadge} ${
+                            session.isOpen
+                              ? session.isOnTime
+                                ? styles.sessionOpen
+                                : styles.sessionLate
+                              : styles.sessionClosed
+                          }`}
+                        >
+                          {session.isOpen ? (session.isOnTime ? 'Đang mở' : 'Muộn') : 'Đã đóng'}
+                        </div>
+                      </div>
+
+                      <div className={styles.sessionTime}>
+                        Thời gian: {session.start} – {session.lateEnd}
+                      </div>
+
+                      {record ? (
+                        <div className={styles.checkedInState}>
+                          <div className={`${styles.statusBig} ${statusInfo?.className}`}>
+                            {statusInfo?.label}
+                          </div>
+                          <div className={styles.checkInTime}>
+                            Điểm danh lúc {record.checkInTime?.substring(0, 5)}
+                          </div>
+                        </div>
+                      ) : session.isOpen ? (
+                        <button
+                          className={`btn btn-primary btn-lg w-full ${styles.checkinBtn}`}
+                          onClick={() => checkIn(session.session)}
+                          disabled={loading || !selectedStudent}
+                        >
+                          {loading ? (
+                            <>
+                              <div className="spinner" /> Đang xử lý...
+                            </>
+                          ) : (
+                            'Điểm danh Ca Tối'
+                          )}
+                        </button>
+                      ) : (
+                        <div className={styles.closedState}>Cổng điểm danh đã đóng</div>
+                      )}
+                    </div>
+                  );
+                })}
           </div>
         )}
 
