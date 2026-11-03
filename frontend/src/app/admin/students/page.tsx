@@ -64,7 +64,12 @@ export default function StudentsAdminPage() {
 
   const startEdit = (s: Student) => {
     setEditingId(s.id);
-    setEditForm({ name: s.name, dob: s.dob || '', orderNum: String(s.orderNum) });
+    setEditForm({
+      name: s.name,
+      dob: s.dob || '',
+      orderNum: String(s.orderNum),
+      createdAt: s.createdAt || '2026-09-15',
+    });
     setShowAddForm(false);
   };
 
@@ -107,6 +112,7 @@ export default function StudentsAdminPage() {
           name: editForm.name.trim(),
           dob: editForm.dob.trim(),
           orderNum: editForm.orderNum ? Number(editForm.orderNum) : undefined,
+          createdAt: editForm.createdAt.trim() || undefined,
         }),
       });
       if (!res.ok) throw new Error();
@@ -141,6 +147,7 @@ export default function StudentsAdminPage() {
   const handleAdd = async () => {
     if (!addForm.name.trim()) { showToast('Họ tên không được để trống', 'error'); return; }
     setSaving(true);
+    const today = new Date().toLocaleDateString('en-CA');
     try {
       const res = await fetch(`${API}/students`, {
         method: 'POST',
@@ -152,6 +159,7 @@ export default function StudentsAdminPage() {
           name: addForm.name.trim(),
           dob: addForm.dob.trim(),
           orderNum: addForm.orderNum ? Number(addForm.orderNum) : undefined,
+          createdAt: addForm.createdAt.trim() || today,
         }),
       });
       if (!res.ok) throw new Error();
@@ -251,6 +259,17 @@ export default function StudentsAdminPage() {
                 onChange={e => setAddForm(f => ({ ...f, dob: e.target.value }))}
               />
             </div>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>Ngày vào lớp (bắt đầu tính điểm danh)</label>
+              <input
+                id="add-created-at"
+                type="date"
+                className={styles.input}
+                value={addForm.createdAt || new Date().toLocaleDateString('en-CA')}
+                onChange={e => setAddForm(f => ({ ...f, createdAt: e.target.value }))}
+                title="Chỉ tính điểm danh bắt đầu từ ngày này. Các ngày trước đó sẽ không bị tính vắng."
+              />
+            </div>
           </div>
           <div className={styles.addActions}>
             <button className={styles.saveBtn} id="btn-confirm-add" onClick={handleAdd} disabled={saving}>
@@ -283,6 +302,7 @@ export default function StudentsAdminPage() {
                 <th className={styles.th} style={{ width: 52 }}>STT</th>
                 <th className={styles.th}>Họ và tên</th>
                 <th className={styles.th}>Ngày sinh</th>
+                <th className={styles.th} style={{ width: 130 }}>Ngày vào lớp</th>
                 <th className={styles.th} style={{ width: 140 }}>Khuôn mặt</th>
                 <th className={styles.th} style={{ width: 150 }}>Thao tác</th>
               </tr>
@@ -318,6 +338,16 @@ export default function StudentsAdminPage() {
                           onChange={e => setEditForm(f => ({ ...f, dob: e.target.value }))}
                         />
                       </td>
+                      <td className={styles.td}>
+                        <input
+                          id={`edit-created-at-${s.id}`}
+                          className={styles.inlineInput}
+                          type="date"
+                          value={editForm.createdAt}
+                          onChange={e => setEditForm(f => ({ ...f, createdAt: e.target.value }))}
+                          title="Ngày bắt đầu tính điểm danh"
+                        />
+                      </td>
                       <td className={styles.td} colSpan={2}>
                         <div className={styles.actions}>
                           <button
@@ -339,6 +369,11 @@ export default function StudentsAdminPage() {
                       <td className={styles.td}><span className={styles.orderNum}>{s.orderNum}</span></td>
                       <td className={styles.td}><span className={styles.studentName}>{s.name}</span></td>
                       <td className={styles.td}><span className={styles.dob}>{s.dob || '—'}</span></td>
+                      <td className={styles.td}>
+                        <span style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)' }} title="Ngày bắt đầu tính điểm danh">
+                          {s.createdAt ? s.createdAt.split('-').reverse().join('/') : '15/09/2026'}
+                        </span>
+                      </td>
                       {/* Khuôn mặt */}
                       <td className={styles.td}>
                         <div className={styles.faceStatusCell}>
@@ -381,7 +416,7 @@ export default function StudentsAdminPage() {
               ))}
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={5} className={styles.empty}>Không tìm thấy sinh viên nào</td>
+                  <td colSpan={6} className={styles.empty}>Không tìm thấy sinh viên nào</td>
                 </tr>
               )}
             </tbody>

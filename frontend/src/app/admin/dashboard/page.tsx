@@ -355,11 +355,6 @@ export default function DashboardPage() {
         else if (st === 'excused') excusedSlots++;
       }
     });
-        else if (st === 'late') lateSlots++;
-        else if (st === 'absent') absentSlots++;
-        else if (st === 'excused') excusedSlots++;
-      }
-    });
 
     return {
       total: totalSlots,

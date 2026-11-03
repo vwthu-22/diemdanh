@@ -348,14 +348,6 @@ function WeeklyPreview({ from, to }: { from: string; to: string }) {
     });
     return { present, late, absent, excused };
   }
-        if (state.status === 'present') present++;
-        else if (state.status === 'late') late++;
-        else if (state.status === 'excused') excused++;
-        else if (state.isAbsent) absent++;
-      });
-    });
-    return { present, late, absent, excused };
-  }
 
   return (
     <div className={styles.previewTable}>

@@ -131,7 +131,6 @@ export class StudentsService implements OnApplicationBootstrap {
     const updated = await this.studentRepo.findOneBy({ id });
     return updated || student;
   }
-  }
 
   async remove(id: number): Promise<void> {
     const student = await this.studentRepo.findOneBy({ id });
