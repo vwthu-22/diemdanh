@@ -130,13 +130,7 @@ function DailyPreview({ date }: { date: string }) {
     passed: boolean,
     student?: { createdAt?: string | null }
   ) {
-    if (student?.createdAt && date < student.createdAt) {
-      return {
-        label: '–',
-        color: 'var(--color-text-muted)',
-        status: null,
-      };
-    }
+    // 1. Bản ghi điểm danh thực tế trong database LUÔN ĐƯỢC ƯU TIÊN SỐ 1, không bao giờ bị ẩn
     if (rec) {
       return {
         label: STATUS_LABEL[rec.status],
@@ -144,6 +138,15 @@ function DailyPreview({ date }: { date: string }) {
         status: rec.status as AttendanceStatus | null,
       };
     }
+    // 2. Nếu không có bản ghi và chưa đến ngày vào lớp -> không đánh vắng
+    if (student?.createdAt && date < student.createdAt) {
+      return {
+        label: '–',
+        color: 'var(--color-text-muted)',
+        status: null,
+      };
+    }
+    // 3. Nếu có lịch và đã qua giờ -> vắng
     if (scheduled && passed) {
       return {
         label: '✗',
@@ -159,9 +162,6 @@ function DailyPreview({ date }: { date: string }) {
   }
 
   function getRowSummary(row: DailyRow) {
-    if (row.student.createdAt && date < row.student.createdAt) {
-      return { label: '–', color: 'var(--color-text-muted)' };
-    }
     const mDisp = getDailySessionDisplay(row.morning, morningScheduled, isMorningPassed, row.student);
     const aDisp = getDailySessionDisplay(row.afternoon, afternoonScheduled, isAfternoonPassed, row.student);
 
@@ -278,16 +278,7 @@ function WeeklyPreview({ from, to }: { from: string; to: string }) {
   const hasMore = dates.length > PREVIEW_DAYS;
 
   function getSessionState(studentId: number, date: string, session: 'morning' | 'afternoon') {
-    const student = data?.students.find((s) => s.id === studentId);
-    if (student?.createdAt && date < student.createdAt) {
-      return {
-        status: null,
-        label: '–',
-        color: 'var(--color-text-muted)',
-        isAbsent: false,
-      };
-    }
-
+    // 1. Bản ghi điểm danh thực tế trong database LUÔN ĐƯỢC ƯU TIÊN SỐ 1
     const rec = attendances.find((a) => a.studentId === studentId && a.date === date && a.session === session);
     if (rec) {
       return {
@@ -295,6 +286,17 @@ function WeeklyPreview({ from, to }: { from: string; to: string }) {
         label: STATUS_LABEL[rec.status],
         color: STATUS_COLOR[rec.status],
         isAbsent: rec.status === 'absent',
+      };
+    }
+
+    // 2. Nếu không có bản ghi và chưa đến ngày vào lớp -> KHÔNG ĐÁNH VẮNG
+    const student = data?.students.find((s) => s.id === studentId);
+    if (student?.createdAt && date < student.createdAt) {
+      return {
+        status: null,
+        label: '–',
+        color: 'var(--color-text-muted)',
+        isAbsent: false,
       };
     }
 
@@ -335,9 +337,7 @@ function WeeklyPreview({ from, to }: { from: string; to: string }) {
 
   function countSummary(studentId: number) {
     let present = 0, late = 0, absent = 0, excused = 0;
-    const student = data?.students.find((s) => s.id === studentId);
     dates.forEach((d) => {
-      if (student?.createdAt && d < student.createdAt) return; // Chưa vào lớp
       (['morning', 'afternoon'] as const).forEach((sess) => {
         const state = getSessionState(studentId, d, sess);
         if (state.status === 'present') present++;
@@ -469,16 +469,7 @@ function MonthlyPreview({ month }: { month: string }) {
   const { students, dates, attendances } = data;
 
   function getSessionState(studentId: number, date: string, session: 'morning' | 'afternoon') {
-    const student = data?.students.find((s) => s.id === studentId);
-    if (student?.createdAt && date < student.createdAt) {
-      return {
-        status: null,
-        label: '–',
-        color: 'var(--color-text-muted)',
-        isAbsent: false,
-      };
-    }
-
+    // 1. Bản ghi điểm danh thực tế trong database LUÔN ĐƯỢC ƯU TIÊN SỐ 1
     const rec = attendances.find((a) => a.studentId === studentId && a.date === date && a.session === session);
     if (rec) {
       return {
@@ -486,6 +477,17 @@ function MonthlyPreview({ month }: { month: string }) {
         label: STATUS_LABEL[rec.status],
         color: STATUS_COLOR[rec.status],
         isAbsent: rec.status === 'absent',
+      };
+    }
+
+    // 2. Nếu không có bản ghi và chưa đến ngày vào lớp -> KHÔNG ĐÁNH VẮNG
+    const student = data?.students.find((s) => s.id === studentId);
+    if (student?.createdAt && date < student.createdAt) {
+      return {
+        status: null,
+        label: '–',
+        color: 'var(--color-text-muted)',
+        isAbsent: false,
       };
     }
 
@@ -536,8 +538,8 @@ function MonthlyPreview({ month }: { month: string }) {
       const isPastStart = isEnrolled && d >= startDate;
       (['morning', 'afternoon'] as const).forEach((sess) => {
         const isSched = schedule ? (schedule[dow]?.includes(sess) ?? true) : true;
-        if (isPastStart && isSched) scheduled++;
         const state = getSessionState(studentId, d, sess);
+        if (state.status || (isPastStart && isSched)) scheduled++;
         if (state.status === 'present') present++;
         else if (state.status === 'late') late++;
         else if (state.status === 'excused') excused++;

@@ -260,22 +260,22 @@ export default function DashboardPage() {
 
   // Compute Daily summary for a row
   const getRowSummary = useCallback((row: DailyAttendanceRow): AttendanceStatus | 'not_enrolled' | 'none' => {
-    // Nếu học sinh chưa nhập học vào ngày này:
-    if (row.student.createdAt && date < row.student.createdAt) {
-      return 'not_enrolled';
-    }
-
     const morningStatus = getEffectiveSessionStatus(row.morning, 'morning', row.student);
     const afternoonStatus = getEffectiveSessionStatus(row.afternoon, 'afternoon', row.student);
     const eveningStatus = getEffectiveSessionStatus(row.evening, 'evening', row.student);
 
     const statuses = [morningStatus, afternoonStatus, eveningStatus].filter(Boolean) as AttendanceStatus[];
-    if (statuses.length === 0) return 'none';
+    if (statuses.length === 0) {
+      if (row.student.createdAt && date < row.student.createdAt) {
+        return 'not_enrolled';
+      }
+      return 'none';
+    }
 
     // If viewing specific session
-    if (viewSession === 'morning') return morningStatus || 'absent';
-    if (viewSession === 'afternoon') return afternoonStatus || 'absent';
-    if (viewSession === 'evening') return eveningStatus || 'absent';
+    if (viewSession === 'morning') return morningStatus || (row.student.createdAt && date < row.student.createdAt ? 'not_enrolled' : 'absent');
+    if (viewSession === 'afternoon') return afternoonStatus || (row.student.createdAt && date < row.student.createdAt ? 'not_enrolled' : 'absent');
+    if (viewSession === 'evening') return eveningStatus || (row.student.createdAt && date < row.student.createdAt ? 'not_enrolled' : 'absent');
 
     // When viewing whole day: chỉ cần có mặt ít nhất 1 buổi trong ngày là tính Có mặt / Muộn
     if (statuses.some((s) => s === 'late')) return 'late';
@@ -288,7 +288,11 @@ export default function DashboardPage() {
   const stats = useMemo(() => {
     if (viewSession === 'morning' || viewSession === 'afternoon' || viewSession === 'evening') {
       const scheduled = isSessionScheduled(viewSession);
-      const enrolledRows = rows.filter((r) => !r.student.createdAt || date >= r.student.createdAt);
+      const enrolledRows = rows.filter((r) => {
+        if (!r.student.createdAt || date >= r.student.createdAt) return true;
+        const rec = viewSession === 'morning' ? r.morning : viewSession === 'afternoon' ? r.afternoon : r.evening;
+        return !!rec;
+      });
       const total = scheduled ? enrolledRows.length : 0;
       let present = 0, late = 0, absent = 0, excused = 0;
 
@@ -327,32 +331,40 @@ export default function DashboardPage() {
     const eveningScheduled = isSessionScheduled('evening');
 
     rows.forEach((r) => {
-      // Bỏ qua học sinh chưa vào lớp tại ngày này
-      if (r.student.createdAt && date < r.student.createdAt) return;
+      const hasAnyRec = !!(r.morning || r.afternoon || r.evening);
+      const isEnrolled = !r.student.createdAt || date >= r.student.createdAt;
+      // Bỏ qua nếu chưa vào lớp VÀ không có bất kỳ bản ghi điểm danh nào trong ngày
+      if (!isEnrolled && !hasAnyRec) return;
 
       if (morningScheduled) {
-        totalSlots++;
         const st = getEffectiveSessionStatus(r.morning, 'morning', r.student);
-        if (st === 'present') presentSlots++;
-        else if (st === 'late') lateSlots++;
-        else if (st === 'absent') absentSlots++;
-        else if (st === 'excused') excusedSlots++;
+        if (st) {
+          totalSlots++;
+          if (st === 'present') presentSlots++;
+          else if (st === 'late') lateSlots++;
+          else if (st === 'absent') absentSlots++;
+          else if (st === 'excused') excusedSlots++;
+        }
       }
       if (afternoonScheduled) {
-        totalSlots++;
         const st = getEffectiveSessionStatus(r.afternoon, 'afternoon', r.student);
-        if (st === 'present') presentSlots++;
-        else if (st === 'late') lateSlots++;
-        else if (st === 'absent') absentSlots++;
-        else if (st === 'excused') excusedSlots++;
+        if (st) {
+          totalSlots++;
+          if (st === 'present') presentSlots++;
+          else if (st === 'late') lateSlots++;
+          else if (st === 'absent') absentSlots++;
+          else if (st === 'excused') excusedSlots++;
+        }
       }
       if (eveningScheduled) {
-        totalSlots++;
         const st = getEffectiveSessionStatus(r.evening, 'evening', r.student);
-        if (st === 'present') presentSlots++;
-        else if (st === 'late') lateSlots++;
-        else if (st === 'absent') absentSlots++;
-        else if (st === 'excused') excusedSlots++;
+        if (st) {
+          totalSlots++;
+          if (st === 'present') presentSlots++;
+          else if (st === 'late') lateSlots++;
+          else if (st === 'absent') absentSlots++;
+          else if (st === 'excused') excusedSlots++;
+        }
       }
     });
 

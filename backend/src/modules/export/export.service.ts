@@ -668,11 +668,9 @@ export class ExportService {
         const studentStart = student.createdAt || startDate;
         const isEnrolled = date >= studentStart;
         const isPastStart = isEnrolled && date >= startDate;
-        if (isPastStart) {
-          if (morningScheduled) totalScheduled++;
-          if (afternoonScheduled) totalScheduled++;
-          if (eveningScheduled) totalScheduled++;
-        }
+        if (morningRec || (isPastStart && morningScheduled)) totalScheduled++;
+        if (afternoonRec || (isPastStart && afternoonScheduled)) totalScheduled++;
+        if (eveningRec || (isPastStart && eveningScheduled)) totalScheduled++;
 
         const isMorningPassed = isPastStart && (date < today || (date === today && compareTime(currentTime, morningLateEnd) > 0));
         const isAfternoonPassed = isPastStart && (date < today || (date === today && compareTime(currentTime, afternoonLateEnd) > 0));
