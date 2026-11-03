@@ -247,22 +247,30 @@ export default function DashboardPage() {
 
   const getEffectiveSessionStatus = useCallback((
     record: AttendanceRecord | null | undefined,
-    session: 'morning' | 'afternoon' | 'evening'
+    session: 'morning' | 'afternoon' | 'evening',
+    student?: { createdAt?: string | null }
   ): AttendanceStatus | null => {
     if (record) return record.status;
+    // Học sinh chưa vào lớp tại ngày này: KHÔNG tính vắng, không tính ca học
+    if (student?.createdAt && date < student.createdAt) return null;
     if (!isSessionScheduled(session)) return null; // Ca nghỉ theo TKB
     if (isSessionClosed(session)) return 'absent'; // Tự động tính là vắng khi đã đóng cổng
     return null; // Đang mở cổng hoặc chưa tới giờ
-  }, [isSessionScheduled, isSessionClosed]);
+  }, [date, isSessionScheduled, isSessionClosed]);
 
   // Compute Daily summary for a row
-  const getRowSummary = useCallback((row: DailyAttendanceRow): AttendanceStatus => {
-    const morningStatus = getEffectiveSessionStatus(row.morning, 'morning');
-    const afternoonStatus = getEffectiveSessionStatus(row.afternoon, 'afternoon');
-    const eveningStatus = getEffectiveSessionStatus(row.evening, 'evening');
+  const getRowSummary = useCallback((row: DailyAttendanceRow): AttendanceStatus | 'not_enrolled' | 'none' => {
+    // Nếu học sinh chưa nhập học vào ngày này:
+    if (row.student.createdAt && date < row.student.createdAt) {
+      return 'not_enrolled';
+    }
+
+    const morningStatus = getEffectiveSessionStatus(row.morning, 'morning', row.student);
+    const afternoonStatus = getEffectiveSessionStatus(row.afternoon, 'afternoon', row.student);
+    const eveningStatus = getEffectiveSessionStatus(row.evening, 'evening', row.student);
 
     const statuses = [morningStatus, afternoonStatus, eveningStatus].filter(Boolean) as AttendanceStatus[];
-    if (statuses.length === 0) return 'absent';
+    if (statuses.length === 0) return 'none';
 
     // If viewing specific session
     if (viewSession === 'morning') return morningStatus || 'absent';
@@ -274,19 +282,20 @@ export default function DashboardPage() {
     if (statuses.some((s) => s === 'present')) return 'present';
     if (statuses.some((s) => s === 'excused')) return 'excused';
     return 'absent';
-  }, [getEffectiveSessionStatus, viewSession]);
+  }, [date, getEffectiveSessionStatus, viewSession]);
 
   // Stats computation
   const stats = useMemo(() => {
     if (viewSession === 'morning' || viewSession === 'afternoon' || viewSession === 'evening') {
       const scheduled = isSessionScheduled(viewSession);
-      const total = scheduled ? rows.length : 0;
+      const enrolledRows = rows.filter((r) => !r.student.createdAt || date >= r.student.createdAt);
+      const total = scheduled ? enrolledRows.length : 0;
       let present = 0, late = 0, absent = 0, excused = 0;
 
       if (scheduled) {
-        rows.forEach((r) => {
+        enrolledRows.forEach((r) => {
           const record = viewSession === 'morning' ? r.morning : viewSession === 'afternoon' ? r.afternoon : r.evening;
-          const st = getEffectiveSessionStatus(record, viewSession);
+          const st = getEffectiveSessionStatus(record, viewSession, r.student);
           if (st === 'present') present++;
           else if (st === 'late') late++;
           else if (st === 'absent') absent++;
@@ -318,9 +327,12 @@ export default function DashboardPage() {
     const eveningScheduled = isSessionScheduled('evening');
 
     rows.forEach((r) => {
+      // Bỏ qua học sinh chưa vào lớp tại ngày này
+      if (r.student.createdAt && date < r.student.createdAt) return;
+
       if (morningScheduled) {
         totalSlots++;
-        const st = getEffectiveSessionStatus(r.morning, 'morning');
+        const st = getEffectiveSessionStatus(r.morning, 'morning', r.student);
         if (st === 'present') presentSlots++;
         else if (st === 'late') lateSlots++;
         else if (st === 'absent') absentSlots++;
@@ -328,7 +340,7 @@ export default function DashboardPage() {
       }
       if (afternoonScheduled) {
         totalSlots++;
-        const st = getEffectiveSessionStatus(r.afternoon, 'afternoon');
+        const st = getEffectiveSessionStatus(r.afternoon, 'afternoon', r.student);
         if (st === 'present') presentSlots++;
         else if (st === 'late') lateSlots++;
         else if (st === 'absent') absentSlots++;
@@ -336,8 +348,13 @@ export default function DashboardPage() {
       }
       if (eveningScheduled) {
         totalSlots++;
-        const st = getEffectiveSessionStatus(r.evening, 'evening');
+        const st = getEffectiveSessionStatus(r.evening, 'evening', r.student);
         if (st === 'present') presentSlots++;
+        else if (st === 'late') lateSlots++;
+        else if (st === 'absent') absentSlots++;
+        else if (st === 'excused') excusedSlots++;
+      }
+    });
         else if (st === 'late') lateSlots++;
         else if (st === 'absent') absentSlots++;
         else if (st === 'excused') excusedSlots++;
@@ -821,6 +838,10 @@ export default function DashboardPage() {
                           <div style={{ textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '0.78rem' }}>
                             — Nghỉ học
                           </div>
+                        ) : student.createdAt && date < student.createdAt ? (
+                          <div style={{ textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '0.78rem' }} title={`Học sinh vào lớp từ ${student.createdAt}`}>
+                            — Chưa vào lớp
+                          </div>
                         ) : isSessionClosed('morning') ? (
                           <div className={styles.sessionBox}>
                             <span
@@ -968,6 +989,10 @@ export default function DashboardPage() {
                           <div style={{ textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '0.78rem' }}>
                             — Nghỉ học
                           </div>
+                        ) : student.createdAt && date < student.createdAt ? (
+                          <div style={{ textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '0.78rem' }} title={`Học sinh vào lớp từ ${student.createdAt}`}>
+                            — Chưa vào lớp
+                          </div>
                         ) : isSessionClosed('afternoon') ? (
                           <div className={styles.sessionBox}>
                             <span
@@ -1112,6 +1137,10 @@ export default function DashboardPage() {
                                 </button>
                               </div>
                             </div>
+                          ) : student.createdAt && date < student.createdAt ? (
+                            <div style={{ textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '0.78rem' }} title={`Học sinh vào lớp từ ${student.createdAt}`}>
+                              — Chưa vào lớp
+                            </div>
                           ) : isSessionClosed('evening') ? (
                             <div className={styles.sessionBox}>
                               <span
@@ -1173,9 +1202,25 @@ export default function DashboardPage() {
                       {/* Tổng kết ngày */}
                       <td className={`${styles.colSummary} ${styles.sectionDividerLeft}`}>
                         {(() => {
-                          const m = getEffectiveSessionStatus(row.morning, 'morning');
-                          const a = getEffectiveSessionStatus(row.afternoon, 'afternoon');
-                          const ev = getEffectiveSessionStatus(row.evening, 'evening');
+                          if (student.createdAt && date < student.createdAt) {
+                            return (
+                              <span
+                                className={styles.daySummaryPill}
+                                style={{
+                                  background: 'rgba(255, 255, 255, 0.04)',
+                                  color: 'var(--color-text-muted)',
+                                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                                }}
+                                title={`Học sinh vào lớp từ ngày ${student.createdAt}`}
+                              >
+                                — Chưa vào lớp
+                              </span>
+                            );
+                          }
+
+                          const m = getEffectiveSessionStatus(row.morning, 'morning', student);
+                          const a = getEffectiveSessionStatus(row.afternoon, 'afternoon', student);
+                          const ev = getEffectiveSessionStatus(row.evening, 'evening', student);
 
                           if (viewSession === 'morning') {
                             const s = m || 'absent';

@@ -19,4 +19,9 @@ export class Student {
 
   @Column({ name: 'face_descriptor', type: 'text', nullable: true })
   faceDescriptor?: string | null; // JSON array of 128 floats from face-api.js
+
+  // Ngày học sinh bắt đầu vào lớp / được thêm vào hệ thống (YYYY-MM-DD).
+  // Các ngày trước mốc này sẽ KHÔNG bị tính vắng, hiển thị dấu "–" (Chưa vào lớp).
+  @Column({ name: 'created_at', type: 'varchar', nullable: true })
+  createdAt?: string;
 }

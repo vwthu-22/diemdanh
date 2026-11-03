@@ -430,7 +430,9 @@ export class ExportService {
         const afternoonScheduled = daySchedule[dow]?.includes('afternoon') ?? true;
         const eveningScheduled = daySchedule[dow]?.includes('evening') ?? false;
 
-        const isPastStart = date >= startDate;
+        const studentStart = student.createdAt || startDate;
+        const isEnrolled = date >= studentStart;
+        const isPastStart = isEnrolled && date >= startDate;
         const isMorningPassed = isPastStart && (date < today || (date === today && compareTime(currentTime, morningLateEnd) > 0));
         const isAfternoonPassed = isPastStart && (date < today || (date === today && compareTime(currentTime, afternoonLateEnd) > 0));
         const isEveningPassed = isPastStart && (date < today || (date === today && compareTime(currentTime, eveningLateEnd) > 0));
@@ -663,7 +665,9 @@ export class ExportService {
         const afternoonScheduled = daySchedule[dow]?.includes('afternoon') ?? true;
         const eveningScheduled = daySchedule[dow]?.includes('evening') ?? false;
 
-        const isPastStart = date >= startDate;
+        const studentStart = student.createdAt || startDate;
+        const isEnrolled = date >= studentStart;
+        const isPastStart = isEnrolled && date >= startDate;
         if (isPastStart) {
           if (morningScheduled) totalScheduled++;
           if (afternoonScheduled) totalScheduled++;

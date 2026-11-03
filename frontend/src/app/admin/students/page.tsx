@@ -9,6 +9,7 @@ interface Student {
   orderNum: number;
   name: string;
   dob: string;
+  createdAt?: string | null;
   faceDescriptor?: string | null;
 }
 
@@ -16,9 +17,10 @@ interface EditForm {
   name: string;
   dob: string;
   orderNum: string;
+  createdAt: string;
 }
 
-const emptyForm: EditForm = { name: '', dob: '', orderNum: '' };
+const emptyForm: EditForm = { name: '', dob: '', orderNum: '', createdAt: '' };
 
 export default function StudentsAdminPage() {
   const [students, setStudents] = useState<Student[]>([]);

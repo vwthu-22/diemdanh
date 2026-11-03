@@ -17,13 +17,13 @@ interface AttendanceRecord {
 }
 
 interface DailyRow {
-  student: { id: number; orderNum: number; name: string; dob?: string };
+  student: { id: number; orderNum: number; name: string; dob?: string; createdAt?: string | null };
   morning: AttendanceRecord | null;
   afternoon: AttendanceRecord | null;
 }
 
 interface WeeklyData {
-  students: { id: number; orderNum: number; name: string; dob?: string }[];
+  students: { id: number; orderNum: number; name: string; dob?: string; createdAt?: string | null }[];
   dates: string[];
   attendances: (AttendanceRecord & { studentId: number; date: string })[];
   schedule?: Record<string, string[]>;
@@ -124,7 +124,19 @@ function DailyPreview({ date }: { date: string }) {
   const isMorningPassed = isPastStart && (date < today || (date === today && (ch * 60 + cm) > (mh * 60 + mm)));
   const isAfternoonPassed = isPastStart && (date < today || (date === today && (ch * 60 + cm) > (ah * 60 + am)));
 
-  function getDailySessionDisplay(rec: AttendanceRecord | null, scheduled: boolean, passed: boolean) {
+  function getDailySessionDisplay(
+    rec: AttendanceRecord | null,
+    scheduled: boolean,
+    passed: boolean,
+    student?: { createdAt?: string | null }
+  ) {
+    if (student?.createdAt && date < student.createdAt) {
+      return {
+        label: '–',
+        color: 'var(--color-text-muted)',
+        status: null,
+      };
+    }
     if (rec) {
       return {
         label: STATUS_LABEL[rec.status],
@@ -147,8 +159,11 @@ function DailyPreview({ date }: { date: string }) {
   }
 
   function getRowSummary(row: DailyRow) {
-    const mDisp = getDailySessionDisplay(row.morning, morningScheduled, isMorningPassed);
-    const aDisp = getDailySessionDisplay(row.afternoon, afternoonScheduled, isAfternoonPassed);
+    if (row.student.createdAt && date < row.student.createdAt) {
+      return { label: '–', color: 'var(--color-text-muted)' };
+    }
+    const mDisp = getDailySessionDisplay(row.morning, morningScheduled, isMorningPassed, row.student);
+    const aDisp = getDailySessionDisplay(row.afternoon, afternoonScheduled, isAfternoonPassed, row.student);
 
     const statuses = [mDisp.status, aDisp.status].filter(Boolean) as AttendanceStatus[];
     if (statuses.length === 0) {
@@ -186,8 +201,8 @@ function DailyPreview({ date }: { date: string }) {
             <tbody>
               {data.map((row, i) => {
                 const sum = getRowSummary(row);
-                const mDisp = getDailySessionDisplay(row.morning, morningScheduled, isMorningPassed);
-                const aDisp = getDailySessionDisplay(row.afternoon, afternoonScheduled, isAfternoonPassed);
+                const mDisp = getDailySessionDisplay(row.morning, morningScheduled, isMorningPassed, row.student);
+                const aDisp = getDailySessionDisplay(row.afternoon, afternoonScheduled, isAfternoonPassed, row.student);
                 const note = row.morning?.note || row.afternoon?.note || '';
                 return (
                   <tr key={row.student.id}>
@@ -263,6 +278,16 @@ function WeeklyPreview({ from, to }: { from: string; to: string }) {
   const hasMore = dates.length > PREVIEW_DAYS;
 
   function getSessionState(studentId: number, date: string, session: 'morning' | 'afternoon') {
+    const student = data?.students.find((s) => s.id === studentId);
+    if (student?.createdAt && date < student.createdAt) {
+      return {
+        status: null,
+        label: '–',
+        color: 'var(--color-text-muted)',
+        isAbsent: false,
+      };
+    }
+
     const rec = attendances.find((a) => a.studentId === studentId && a.date === date && a.session === session);
     if (rec) {
       return {
@@ -310,9 +335,19 @@ function WeeklyPreview({ from, to }: { from: string; to: string }) {
 
   function countSummary(studentId: number) {
     let present = 0, late = 0, absent = 0, excused = 0;
+    const student = data?.students.find((s) => s.id === studentId);
     dates.forEach((d) => {
+      if (student?.createdAt && d < student.createdAt) return; // Chưa vào lớp
       (['morning', 'afternoon'] as const).forEach((sess) => {
         const state = getSessionState(studentId, d, sess);
+        if (state.status === 'present') present++;
+        else if (state.status === 'late') late++;
+        else if (state.status === 'excused') excused++;
+        else if (state.isAbsent) absent++;
+      });
+    });
+    return { present, late, absent, excused };
+  }
         if (state.status === 'present') present++;
         else if (state.status === 'late') late++;
         else if (state.status === 'excused') excused++;
@@ -442,6 +477,16 @@ function MonthlyPreview({ month }: { month: string }) {
   const { students, dates, attendances } = data;
 
   function getSessionState(studentId: number, date: string, session: 'morning' | 'afternoon') {
+    const student = data?.students.find((s) => s.id === studentId);
+    if (student?.createdAt && date < student.createdAt) {
+      return {
+        status: null,
+        label: '–',
+        color: 'var(--color-text-muted)',
+        isAbsent: false,
+      };
+    }
+
     const rec = attendances.find((a) => a.studentId === studentId && a.date === date && a.session === session);
     if (rec) {
       return {
@@ -490,11 +535,13 @@ function MonthlyPreview({ month }: { month: string }) {
     let scheduled = 0;
     const today = data?.today || new Date().toLocaleDateString('en-CA');
     const startDate = data?.settings?.startDate || today;
+    const student = data?.students.find((s) => s.id === studentId);
     dates.forEach((d) => {
+      const isEnrolled = !student?.createdAt || d >= student.createdAt;
       const dow = String(new Date(d).getDay());
       const monday = getMondayOfWeek(d);
       const schedule = data?.settings?.weeklySchedules?.[monday] ?? getTimetableScheduleForWeek(monday) ?? data?.schedule;
-      const isPastStart = d >= startDate;
+      const isPastStart = isEnrolled && d >= startDate;
       (['morning', 'afternoon'] as const).forEach((sess) => {
         const isSched = schedule ? (schedule[dow]?.includes(sess) ?? true) : true;
         if (isPastStart && isSched) scheduled++;

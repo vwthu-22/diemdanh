@@ -9,6 +9,7 @@ export interface Student {
   dob: string;
   deviceId?: string | null;
   faceDescriptor?: string | null;
+  createdAt?: string | null; // YYYY-MM-DD: Ngày vào lớp
 }
 
 export interface AttendanceRecord {

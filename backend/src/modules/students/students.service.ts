@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, OnApplicationBootstrap } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Student } from '../../entities/student.entity';
@@ -36,11 +36,35 @@ export function compareVietnameseNames(nameA: string, nameB: string): number {
 }
 
 @Injectable()
-export class StudentsService {
+export class StudentsService implements OnApplicationBootstrap {
   constructor(
     @InjectRepository(Student)
     private studentRepo: Repository<Student>,
   ) {}
+
+  async onApplicationBootstrap() {
+    // Đảm bảo cột created_at tồn tại trong database
+    try {
+      await this.studentRepo.query(`ALTER TABLE "students" ADD COLUMN IF NOT EXISTS "created_at" varchar`);
+    } catch {
+      await this.studentRepo.query(`ALTER TABLE students ADD COLUMN created_at varchar`).catch(() => {});
+    }
+
+    // Gán ngày vào lớp cho các sinh viên chưa có created_at:
+    // Sinh viên ban đầu của lớp (id <= 32) -> tính từ đầu kỳ '2026-09-15'
+    // Sinh viên mới thêm sau (id > 32) -> tính từ ngày thêm hôm nay '2026-11-04'
+    const all = await this.studentRepo.find();
+    let changed = false;
+    for (const s of all) {
+      if (!s.createdAt) {
+        s.createdAt = s.id <= 32 ? '2026-09-15' : '2026-11-04';
+        changed = true;
+      }
+    }
+    if (changed) {
+      await this.studentRepo.save(all);
+    }
+  }
 
   findAll(): Promise<Student[]> {
     return this.studentRepo.find({ order: { orderNum: 'ASC' } });
@@ -66,11 +90,13 @@ export class StudentsService {
     return this.studentRepo.find({ order: { orderNum: 'ASC' } });
   }
 
-  async create(data: { name: string; dob?: string; orderNum?: number }): Promise<Student> {
+  async create(data: { name: string; dob?: string; orderNum?: number; createdAt?: string }): Promise<Student> {
+    const today = new Date().toLocaleDateString('en-CA');
     const student = this.studentRepo.create({
       name: data.name.trim(),
       dob: data.dob ? data.dob.trim() : undefined,
       orderNum: data.orderNum ? Number(data.orderNum) : 999,
+      createdAt: data.createdAt ? data.createdAt.trim() : today,
     });
 
     const saved = await this.studentRepo.save(student);
@@ -81,7 +107,7 @@ export class StudentsService {
     return result || saved;
   }
 
-  async update(id: number, data: Partial<{ name: string; dob: string; orderNum: number }>): Promise<Student> {
+  async update(id: number, data: Partial<{ name: string; dob: string; orderNum: number; createdAt: string }>): Promise<Student> {
     const student = await this.studentRepo.findOneBy({ id });
     if (!student) throw new NotFoundException('Không tìm thấy sinh viên');
 
@@ -92,6 +118,7 @@ export class StudentsService {
       name: data.name !== undefined ? data.name.trim() : student.name,
       dob: data.dob !== undefined ? data.dob.trim() : student.dob,
       orderNum: data.orderNum !== undefined ? Number(data.orderNum) : student.orderNum,
+      createdAt: data.createdAt !== undefined ? data.createdAt.trim() : student.createdAt,
     });
 
     await this.studentRepo.save(student);
@@ -103,6 +130,7 @@ export class StudentsService {
 
     const updated = await this.studentRepo.findOneBy({ id });
     return updated || student;
+  }
   }
 
   async remove(id: number): Promise<void> {
